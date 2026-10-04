@@ -1,0 +1,18 @@
+-- Baseline migration for PostgreSQL (production).
+--
+-- Regenerate with:  npm run db:migration:baseline
+--
+-- This creates the 22 tables and their foreign keys so that
+-- `prisma migrate deploy` works on a fresh PostgreSQL database.
+--
+-- ── Production note ──────────────────────────────────────────────
+-- Supabase deployments do NOT use this migration. `supabase/schema.sql` is
+-- the authoritative production schema: the same tables plus Row-Level Security
+-- policies, check constraints, domains, helper functions, grants and the
+-- storage bucket, none of which Prisma migrations can express.
+--
+-- So on Supabase: apply schema.sql via the SQL Editor, then run db:seed.
+-- This baseline exists for a plain PostgreSQL host (VPS) where you would
+-- otherwise have to apply schema.sql by hand.
+--
+-- Verified against a real PostgreSQL engine by:  npm run verify:migration

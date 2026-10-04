@@ -32,11 +32,16 @@ npm run dev
 | `npm run start` | تشغيل نسخة الإنتاج |
 | `npm run typecheck` | فحص أنواع TypeScript |
 | `npm run lint` | فحص الجودة (ESLint) |
-| `npm run db:setup` | توليد العميل + الترحيلات + تعبئة المحتوى |
+| `npm run db:setup` | قاعدة التطوير المحلية (SQLite) + حساب المدير + المحتوى |
+| `npm run db:setup:pg` | نفس الشيء لكن على PostgreSQL (استخدمه مع `DATABASE_URL` إنتاجي) |
 | `npm run db:seed` | إعادة تعبئة المحتوى (آمنة — لا تحذف تعديلاتك) |
 | `npm run db:studio` | متصفح قاعدة البيانات البصري (Prisma Studio) |
 | `npm run content:lint` | فحص النصوص العربية في ملفات المحتوى والمكوّنات |
 | `npm run test:smoke` | فحص المسارات والحماية ورؤوس الأمان مقابل خادم يعمل |
+| `npm run verify:schema` | تنفيذ `supabase/schema.sql` ثم `seed.sql` على محرك PostgreSQL حقيقي (٦٨ فحصًا) |
+| `npm run verify:migration` | تنفيذ ترحيلات Prisma على قاعدة فارغة ومقارنتها بـ `schema.sql` |
+| `npm run verify:secrets` | التأكد من عدم تسرّب أي سرّ حقيقي إلى المستودع |
+| `npm run seed:sql` | إعادة توليد `supabase/seed.sql` من قاعدة التطوير |
 
 ---
 
@@ -68,11 +73,14 @@ npm run dev
 ```
 sewr-waie/
 ├── prisma/
-│   ├── schema.prisma          # مخطط قاعدة البيانات
+│   ├── schema.prisma          # مخطط الإنتاج (PostgreSQL)
+│   ├── schema.dev.prisma      # مخطط التطوير (SQLite) — نفس الحقول تمامًا
+│   ├── migrations/            # ترحيل أساسي لـ PostgreSQL
 │   ├── seed.ts                # حساب المدير + المحتوى الأولي
 │   └── content/               # نصوص المحتوى العربية (مصدر الحقيقة)
 ├── supabase/
-│   └── schema.sql             # PostgreSQL كامل + سياسات RLS
+│   ├── schema.sql             # PostgreSQL كامل + سياسات RLS
+│   └── seed.sql               # البيانات الأولية — مولَّدة (npm run seed:sql)
 ├── docs/
 │   ├── DEPLOYMENT.md          # دليل النشر خطوة بخطوة
 │   └── ADMIN-GUIDE.md         # دليل استخدام اللوحة (بالعربية)
@@ -87,7 +95,12 @@ sewr-waie/
 │   ├── lint-jsx.ts                # فحص النصوص العربية في المكوّنات
 │   ├── smoke-test.ts              # فحص المسارات والأمان
 │   ├── verify-encryption.ts       # إثبات تشفير بيانات النموذج
-│   └── verify-booking.ts          # إثبات عمل نموذج الحجز
+│   ├── verify-booking.ts          # إثبات عمل نموذج الحجز
+│   ├── verify-schema.ts           # تنفيذ schema.sql + seed.sql على PostgreSQL حقيقي
+│   ├── verify-migration.ts        # تنفيذ ترحيلات Prisma ومقارنتها بـ schema.sql
+│   ├── verify-secrets.ts          # كشف تسرّب الأسرار إلى المستودع
+│   ├── generate-seed-sql.ts       # توليد supabase/seed.sql من قاعدة التطوير
+│   └── generate-baseline-migration.ts  # توليد ترحيل PostgreSQL الأساسي
 └── src/
     ├── app/
     │   ├── layout.tsx        # الجذر: الخطوط + SEO فقط

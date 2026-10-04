@@ -1,6 +1,28 @@
+-- Baseline migration for PostgreSQL (production).
+--
+-- Regenerate with:  npm run db:migration:baseline
+--
+-- This creates the 22 tables and their foreign keys so that
+-- `prisma migrate deploy` works on a fresh PostgreSQL database.
+--
+-- ── Production note ──────────────────────────────────────────────
+-- Supabase deployments do NOT use this migration. `supabase/schema.sql` is
+-- the authoritative production schema: the same tables plus Row-Level Security
+-- policies, check constraints, domains, helper functions, grants and the
+-- storage bucket, none of which Prisma migrations can express.
+--
+-- So on Supabase: apply schema.sql via the SQL Editor, then run db:seed.
+-- This baseline exists for a plain PostgreSQL host (VPS) where you would
+-- otherwise have to apply schema.sql by hand.
+--
+-- Verified against a real PostgreSQL engine by:  npm run verify:migration
+
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "emailLower" TEXT NOT NULL,
@@ -13,42 +35,47 @@ CREATE TABLE "users" (
     "twoFactorEnabled" BOOLEAN NOT NULL DEFAULT false,
     "twoFactorSecretEnc" TEXT,
     "failedLoginCount" INTEGER NOT NULL DEFAULT 0,
-    "lockedUntil" DATETIME,
-    "lastLoginAt" DATETIME,
+    "lockedUntil" TIMESTAMP(3),
+    "lastLoginAt" TIMESTAMP(3),
     "lastLoginIp" TEXT,
-    "passwordChangedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "passwordChangedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "passwordResetTokenHash" TEXT,
-    "passwordResetExpiresAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "passwordResetExpiresAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "sessions" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "ip" TEXT,
     "userAgent" TEXT,
-    "lastSeenAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "expiresAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "login_attempts" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "ip" TEXT,
     "success" BOOLEAN NOT NULL DEFAULT false,
     "userAgent" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "login_attempts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "clients" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "fullName" TEXT NOT NULL,
     "searchName" TEXT NOT NULL,
@@ -68,35 +95,35 @@ CREATE TABLE "clients" (
     "source" TEXT,
     "preferredContactMethod" TEXT DEFAULT 'PHONE',
     "assignedToId" TEXT,
-    "consentGivenAt" DATETIME,
+    "consentGivenAt" TIMESTAMP(3),
     "consentIp" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "clients_programId_fkey" FOREIGN KEY ("programId") REFERENCES "content_items" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "clients_assignedToId_fkey" FOREIGN KEY ("assignedToId") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "clients_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "appointments" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "clientId" TEXT,
     "clientName" TEXT,
     "service" TEXT NOT NULL,
     "programId" TEXT,
-    "preferredDate" DATETIME NOT NULL,
+    "preferredDate" TIMESTAMP(3) NOT NULL,
     "preferredTime" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "notesEnc" TEXT,
     "channel" TEXT NOT NULL DEFAULT 'BOOKING_FORM',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "appointments_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "clients" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "appointments_programId_fkey" FOREIGN KEY ("programId") REFERENCES "content_items" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "appointments_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "contact_messages" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "phoneEnc" TEXT,
     "emailEnc" TEXT,
@@ -107,16 +134,18 @@ CREATE TABLE "contact_messages" (
     "topic" TEXT,
     "isRead" BOOLEAN NOT NULL DEFAULT false,
     "isArchived" BOOLEAN NOT NULL DEFAULT false,
-    "repliedAt" DATETIME,
-    "consentGivenAt" DATETIME,
+    "repliedAt" TIMESTAMP(3),
+    "consentGivenAt" TIMESTAMP(3),
     "ip" TEXT,
     "userAgent" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "contact_messages_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "content_items" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -137,31 +166,37 @@ CREATE TABLE "content_items" (
     "order" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "isFeatured" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "content_items_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "categories" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
     "color" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "tags" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "slug" TEXT NOT NULL
+    "slug" TEXT NOT NULL,
+
+    CONSTRAINT "tags_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "posts" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "searchText" TEXT,
@@ -172,8 +207,8 @@ CREATE TABLE "posts" (
     "categoryId" TEXT,
     "authorId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
-    "publishedAt" DATETIME,
-    "scheduledAt" DATETIME,
+    "publishedAt" TIMESTAMP(3),
+    "scheduledAt" TIMESTAMP(3),
     "seoTitle" TEXT,
     "seoDescription" TEXT,
     "noIndex" BOOLEAN NOT NULL DEFAULT false,
@@ -181,10 +216,10 @@ CREATE TABLE "posts" (
     "readingMinutes" INTEGER NOT NULL DEFAULT 3,
     "allowComments" BOOLEAN NOT NULL DEFAULT false,
     "featuredOnHome" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "posts_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "posts_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "posts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -192,54 +227,60 @@ CREATE TABLE "post_tags" (
     "postId" TEXT NOT NULL,
     "tagId" TEXT NOT NULL,
 
-    PRIMARY KEY ("postId", "tagId"),
-    CONSTRAINT "post_tags_postId_fkey" FOREIGN KEY ("postId") REFERENCES "posts" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "post_tags_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "tags" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "post_tags_pkey" PRIMARY KEY ("postId","tagId")
 );
 
 -- CreateTable
 CREATE TABLE "trust_items" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
     "icon" TEXT NOT NULL DEFAULT 'BadgeCheck',
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "trust_items_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "process_steps" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "icon" TEXT NOT NULL DEFAULT 'Compass',
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "process_steps_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "value_items" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "icon" TEXT NOT NULL DEFAULT 'Gem',
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "value_items_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "why_items" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "icon" TEXT NOT NULL DEFAULT 'Star',
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "why_items_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "statistics" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "label" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "suffix" TEXT,
@@ -247,12 +288,14 @@ CREATE TABLE "statistics" (
     "icon" TEXT,
     "isHighlight" BOOLEAN NOT NULL DEFAULT false,
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "statistics_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "testimonials" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "quote" TEXT NOT NULL,
     "authorName" TEXT,
     "authorRole" TEXT,
@@ -261,22 +304,26 @@ CREATE TABLE "testimonials" (
     "image" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "testimonials_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "faqs" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "question" TEXT NOT NULL,
     "answer" TEXT NOT NULL,
     "category" TEXT NOT NULL DEFAULT 'عام',
     "order" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "faqs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "pages" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "subtitle" TEXT,
@@ -285,13 +332,15 @@ CREATE TABLE "pages" (
     "seoDescription" TEXT,
     "noIndex" BOOLEAN NOT NULL DEFAULT false,
     "isPublished" BOOLEAN NOT NULL DEFAULT true,
-    "updatedAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "pages_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "SiteSetting" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'singleton',
+CREATE TABLE "site_settings" (
+    "id" TEXT NOT NULL DEFAULT 'singleton',
     "siteName" TEXT NOT NULL DEFAULT 'سوار وعي',
     "siteNameEn" TEXT NOT NULL DEFAULT 'Sewr Waie',
     "tagline" TEXT NOT NULL DEFAULT 'مركز الإحاطة بعلوم التعافي',
@@ -359,13 +408,15 @@ CREATE TABLE "SiteSetting" (
     "notifyOnNewBooking" BOOLEAN NOT NULL DEFAULT true,
     "primaryColor" TEXT NOT NULL DEFAULT '#4B2A7B',
     "accentColor" TEXT NOT NULL DEFAULT '#D9A441',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "site_settings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "media_assets" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "filename" TEXT NOT NULL,
     "path" TEXT NOT NULL,
     "mimeType" TEXT NOT NULL,
@@ -375,13 +426,14 @@ CREATE TABLE "media_assets" (
     "alt" TEXT,
     "folder" TEXT NOT NULL DEFAULT 'general',
     "uploadedById" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "media_assets_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "media_assets_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "activity_logs" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "userId" TEXT,
     "userName" TEXT,
     "action" TEXT NOT NULL,
@@ -389,8 +441,9 @@ CREATE TABLE "activity_logs" (
     "entityId" TEXT,
     "summary" TEXT NOT NULL,
     "ip" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "activity_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "activity_logs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -482,3 +535,36 @@ CREATE INDEX "activity_logs_entity_entityId_idx" ON "activity_logs"("entity", "e
 
 -- CreateIndex
 CREATE INDEX "activity_logs_createdAt_idx" ON "activity_logs"("createdAt");
+
+-- AddForeignKey
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "clients" ADD CONSTRAINT "clients_programId_fkey" FOREIGN KEY ("programId") REFERENCES "content_items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "clients" ADD CONSTRAINT "clients_assignedToId_fkey" FOREIGN KEY ("assignedToId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "appointments" ADD CONSTRAINT "appointments_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "clients"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "appointments" ADD CONSTRAINT "appointments_programId_fkey" FOREIGN KEY ("programId") REFERENCES "content_items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "posts" ADD CONSTRAINT "posts_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "posts" ADD CONSTRAINT "posts_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "post_tags" ADD CONSTRAINT "post_tags_postId_fkey" FOREIGN KEY ("postId") REFERENCES "posts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "post_tags" ADD CONSTRAINT "post_tags_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "media_assets" ADD CONSTRAINT "media_assets_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activity_logs" ADD CONSTRAINT "activity_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;

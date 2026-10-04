@@ -1,24 +1,23 @@
 // ─────────────────────────────────────────────────────────────
 //  سوار وعي — Sewr Waie
-//  Prisma schema — PRODUCTION (PostgreSQL)
+//  Prisma schema — DEVELOPMENT (SQLite)
 //
-//  This is the default schema. Vercel's `postinstall` runs `prisma generate`
-//  against it, so the deployed app always gets a PostgreSQL client.
+//  This file is the SQLite mirror of schema.prisma and exists so that local
+//  development needs no database server. It must stay structurally identical
+//  to schema.prisma; the only intended difference is the datasource provider.
 //
-//    Production : this file  +  supabase/schema.sql  (DDL + Row-Level Security)
-//    Local dev : prisma/schema.dev.prisma  (SQLite, no server needed)
+//    Local      : DATABASE_URL="file:./dev.db"
+//    Production : schema.prisma (postgresql) + supabase/schema.sql
 //
-//  The two files must stay structurally identical — only the datasource
-//  provider differs. `npm run verify:schema` proves the PostgreSQL DDL and the
-//  seed data actually execute, so drift is caught before deployment.
+//  To verify the two have not drifted:
+//    npm run verify:schema
 // ─────────────────────────────────────────────────────────────
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 

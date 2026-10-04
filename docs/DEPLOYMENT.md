@@ -10,7 +10,7 @@
 |---|---|---|
 | الإطار | **Next.js 16 (App Router) + TypeScript** | خادم ومُصنِّع في مشروع واحد، جلب بيانات على الخادم (يقلّل تسريب البيانات)، وتوليد ثابت للصفحات العامة. |
 | التنسيق | **Tailwind CSS v4** | نظام تصميم كامل في ملف واحد مع ألوان المركز.lines ورموز مخصّصة. |
-| قاعدة البيانات | **Prisma ORM** | نفس المخطط يعمل على SQLite للتطوير وعلى PostgreSQL للإنتاج بتغيير سطر واحد. |
+| قاعدة البيانات | **Prisma ORM** | مخططان من ملف مصدر واحد: `schema.prisma` للإنتاج (PostgreSQL) و`schema.dev.prisma` للتطوير (SQLite). لا تبديل يدوي ولا خطر نسيان. |
 | المصادقة | **جلسات على الخادم (Opaque sessions)** | لا JWT في المتصفح، فإبطال الجلسة فوري. الكوكي `httpOnly` وموقّع، وقاعدة البيانات تخزّن تجزئة SHA‑256 فقط. |
 | التخزين | **محلي أو Supabase Storage** | عبر محوّل واحد `STORAGE_DRIVER`. |
 | البريد | **SMTP (nodemailer)** | يعمل مع أي مزوّد: Amazon SES، Mailgun، SMTP2GO، أو بريد المؤسسة. |
@@ -51,6 +51,9 @@ npm run dev
 
 الموقع: `http://localhost:3000` · لوحة التحكم: `http://localhost:3000/admin`
 
+> `npm run dev` يعمل على **SQLite** عبر `prisma/schema.dev.prisma` بلا أي خادم
+> قواعد بيانات. لا تغيّر `prisma/schema.prisma` — ذلك للإنتاج فقط.
+
 **بيانات الدخول الافتراضية** (من `.env`):
 
 ```
@@ -66,49 +69,57 @@ npm run dev
 
 ## ٤. الانتقال إلى PostgreSQL / Supabase
 
-هذا هو التغيير الوحيد المطلوب للإنتاج.
+> **لا تحتاج تعديل أي ملف.** مخطط الإنتاج `prisma/schema.prisma` يستهدف
+> `postgresql` بشكل افتراضي، وVercel يشغّل `prisma generate` عليه تلقائيًا.
+>
+> أمّا `prisma/schema.dev.prisma` فهو نسخة SQLite **للتطوير المحلي فقط**، ويستخدمه
+> أمر `npm run dev`. كلا المخططين يوصَفان نفس النماذج والحقول بالضبط، و
+> `npm run verify:schema` يتحقق من ذلك.
 
 ### ٤.١ إنشاء قاعدة البيانات
 
 **مع Supabase:**
 
-1. أنشئ مشروعًا جديدًا.
-2. افتح **SQL Editor**.
-3. الصق محتوى `supabase/schema.sql` بالكامل وشغّله.
+1. افتح مشروعك ← **SQL Editor**.
+2. الصق محتوى `supabase/schema.sql` بالكامل وشغّله.
    هذا ينشئ كل الجداول والقيود والفهارس وسياسات RLS وحاوية التخزين.
-4. من **Project Settings → Database → Connection string**، انسخ رابط الاتصال (استخدم **Session pooler** إن كنت خلف IPv4).
+   *لا يحتاج المخطط أي إضافة خارجية — يعمل كما هو على Supabase وعلى أي
+   خادم PostgreSQL عادي.*
+3. الصق محتوى `supabase/seed.sql` وشغّله بعدها.
+   هذا يُدخل حساب المدير وكل المحتوى والإعدادات.
+4. من **Project Settings → Database → Connection string**، انسخ رابط الاتصال
+   (استخدم **Session pooler** إن كنت خلف IPv4).
 
-### ٤.٢ تحديث Prisma
+> الملفان آمنان للتشغيل المتكرر: كل عمليات الإدخال تتجاهل التعارضات، فيمكن
+> إعادة تشغيل ملف البيانات دون كسر أي شيء.
 
-في `prisma/schema.prisma` غيّر سطرًا واحدًا:
+> **ما الذي لا تحتاج فعله مع Supabase:** لا تثبّت `@supabase/supabase-js` ولا
+> تنشئ `utils/supabase/`. التطبيق يتصل بقاعدة البيانات عبر Prisma، والتخزين عبر
+> `fetch` مباشرة. حزمة Supabase المبنية أعلاه تخصّ مشاريع Supabase Auth، ولست
+> جزءًا من هذا المشروع.
 
-```prisma
-datasource db {
--  provider = "sqlite"
-+  provider = "postgresql"
-   url      = env("DATABASE_URL")
-}
-```
+### ٤.٢ ضبط رابط الاتصال
 
-ثم في `.env`:
+في **Vercel ← Settings ← Environment Variables** (وليس في `.env` المحلي):
 
 ```env
-# قبل
-DATABASE_URL="file:./dev.db"
-
-# بعد
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/postgres?schema=public&connection_limit=10"
 ```
 
 > **مهم:** استبدل `USER` و`PASSWORD` بتلك **المُرمَّزة (URL‑encoded)**. إن كانت كلمة المرور تحتوي على `#` أو `@` يجب ترميزها.
 
-### ٤.٣ تطبيق الترحيلات
+> اترك `.env` المحلي على `file:./dev.db` حتى يستمر `npm run dev` بلا خادم.
+
+### ٤.٣ التحقق قبل النشر
+
+المخطط والبيانات مُتحقَّق منهما فعليًا على محرك PostgreSQL حقيقي:
 
 ```bash
-npm run db:setup
+npm run verify:schema    # ٦٨ فحصًا: DDL + RLS + المفاتيح الأجنبية + البيانات
 ```
 
-المخطط متوافق بين SQLite وPostgreSQL، لذا يعمل `prisma migrate deploy` كما هو.
+هذا يشغّل ملفي المخطط والبيانات على محرك قواعد بيانات حقيقي، ويؤكد أن ما
+لصقته في Supabase سيعمل. إن فشل هنا فلن تنشر.
 
 ### ٤.٤ التخزين
 
@@ -143,11 +154,13 @@ git push -u origin main
 | الحقل | القيمة |
 |---|---|
 | Framework Preset | Next.js |
-| Build Command | `npx prisma generate && prisma migrate deploy && next build` |
+| Build Command | `npm run build` |
 | Install Command | `npm install` |
 | Output Directory | `.next` |
 
-> أمر البناء يشغّل الترحيلات تلقائيًا، فلا تنسى إضافته.
+> لا حاجة لأي أمر ترحيل هنا: المخطط يُطبَّق مرة واحدة من **SQL Editor** في
+> Supabase (الخطوة ٤.١). أمر البناء يشغّل `prisma generate` عبر `postinstall`
+> تلقائيًا، وهذا كل ما يلزم.
 
 ### ٥.٣ متغيرات البيئة (Production → Environment Variables)
 
@@ -201,7 +214,11 @@ rsync -av --exclude node_modules --exclude .next ./ user@server:/var/www/sewr-wa
 # ٣) على الخادم
 cd /var/www/sewr-waie
 npm ci --omit=dev
-npx prisma migrate deploy
+
+# إن كانت قاعدة البيانات جديدة: طبّق المخطط مرّة واحدة
+psql "$DATABASE_URL" -f supabase/schema.sql
+psql "$DATABASE_URL" -f supabase/seed.sql
+
 npm run db:seed
 
 # ٤) خدمة systemd
