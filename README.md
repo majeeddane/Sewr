@@ -41,6 +41,9 @@ npm run dev
 | `npm run verify:schema` | تنفيذ `supabase/schema.sql` ثم `seed.sql` على محرك PostgreSQL حقيقي (٦٨ فحصًا) |
 | `npm run verify:migration` | تنفيذ ترحيلات Prisma على قاعدة فارغة ومقارنتها بـ `schema.sql` |
 | `npm run verify:secrets` | التأكد من عدم تسرّب أي سرّ حقيقي إلى المستودع |
+| `npm run db:inspect` | فحص قاعدة الإنتاج المتصلة بـ `DATABASE_URL` (قراءة فقط) |
+| `npm run db:apply` | تطبيق المخطط والبيانات على قاعدة PostgreSQL |
+| `npm run verify:production-db` | ١٩ فحصًا على قاعدة الإنتاج: المحتوى، التشفير، RLS، المفاتيح |
 | `npm run seed:sql` | إعادة توليد `supabase/seed.sql` من قاعدة التطوير |
 
 ---
@@ -99,6 +102,8 @@ sewr-waie/
 │   ├── verify-schema.ts           # تنفيذ schema.sql + seed.sql على PostgreSQL حقيقي
 │   ├── verify-migration.ts        # تنفيذ ترحيلات Prisma ومقارنتها بـ schema.sql
 │   ├── verify-secrets.ts          # كشف تسرّب الأسرار إلى المستودع
+│   ├── verify-production-db.ts    # فحص قاعدة الإنتاج عبر DATABASE_URL
+│   ├── inspect-db.ts              # عرض/تطبيق مخطط قاعدة الإنتاج
 │   ├── generate-seed-sql.ts       # توليد supabase/seed.sql من قاعدة التطوير
 │   └── generate-baseline-migration.ts  # توليد ترحيل PostgreSQL الأساسي
 └── src/
