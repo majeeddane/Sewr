@@ -1,0 +1,750 @@
+-- ═══════════════════════════════════════════════════════════════════════
+--  سوار وعي — Sewr Waie
+--  PostgreSQL / Supabase schema  +  Row-Level Security
+--
+--  This file mirrors prisma/schema.prisma for production use. Two supported
+--  production paths:
+--
+--   A) Supabase (recommended)
+--      1. Create the project.
+--      2. Run this whole file in the SQL editor.
+--      3. Copy the connection string into DATABASE_URL.
+--      4. In prisma/schema.prisma change the datasource provider to
+--         "postgresql".
+--      5. npx prisma migrate deploy
+--
+--   B) Any PostgreSQL (VPS, RDS, Neon)
+--      Same as above minus the Supabase-specific steps.
+--
+--  Why the app talks to the database with the Prisma service role instead of
+--  anon keys:
+--    • Server-side sessions already authorise every request, and RLS cannot
+--      see the Prisma connection's identity.
+--    • The RLS policies below are the defence-in-depth layer for the case where
+--      a connection string or anon key is ever exposed to a browser, a
+--      dashboard, or a leaked log. They are written to fail closed.
+--
+--  Encrypting PII stays an application concern (AES-256-GCM in src/lib/crypto)
+--  because the database cannot hold the key.
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- ───────────────────────────────────────────────────────────────────────
+--  Extensions
+-- ───────────────────────────────────────────────────────────────────────
+create extension if not exists "pgcrypto";
+create extension if not exists "citext";
+
+-- ───────────────────────────────────────────────────────────────────────
+--  Enumerated domain values
+--
+--  SQLite cannot hold enums, so prisma/schema.prisma stores these as text.
+--  On PostgreSQL we still keep text + CHECK constraints rather than native
+--  enums: adding a value to a native enum requires a lock and an application
+--  deploy in lock-step, whereas a CHECK only needs a constraint change.
+-- ───────────────────────────────────────────────────────────────────────
+create domain user_role as text
+  check (value in ('SUPER_ADMIN', 'EDITOR', 'RECEPTIONIST'));
+
+create domain client_status as text
+  check (value in ('NEW', 'CONTACTED', 'BOOKED', 'COMPLETED', 'CLOSED'));
+
+create domain appointment_status as text
+  check (value in ('PENDING', 'CONFIRMED', 'CANCELLED', 'DONE', 'NO_SHOW'));
+
+create domain post_status as text
+  check (value in ('DRAFT', 'SCHEDULED', 'PUBLISHED'));
+
+create domain content_type as text
+  check (value in ('SERVICE', 'PROGRAM', 'PROTOCOL'));
+
+create domain who_is_asking as text
+  check (value in ('SELF', 'FAMILY', 'INSTITUTION', 'OTHER'));
+
+create domain contact_method as text
+  check (value in ('PHONE', 'WHATSAPP', 'EMAIL'));
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Authentication
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table users (
+  id                       text primary key,
+  name                     text not null,
+  email                    text not null,
+  "emailLower"             text not null,
+  "passwordHash"           text not null,
+  role                     user_role not null default 'EDITOR',
+  "jobTitle"               text,
+  "avatarUrl"              text,
+  phone                    text,
+
+  "isActive"               boolean not null default true,
+  "twoFactorEnabled"       boolean not null default false,
+  "twoFactorSecretEnc"     text,
+
+  "failedLoginCount"       integer not null default 0,
+  "lockedUntil"            timestamptz,
+  "lastLoginAt"            timestamptz,
+  "lastLoginIp"            text,
+  "passwordChangedAt"      timestamptz not null default now(),
+  "passwordResetTokenHash" text,
+  "passwordResetExpiresAt" timestamptz,
+
+  "createdAt"              timestamptz not null default now(),
+  "updatedAt"              timestamptz not null default now()
+);
+create unique index users_email_lower_key on users ("emailLower");
+create index users_role_idx on users (role);
+
+create table sessions (
+  id         text primary key,
+  "tokenHash" text not null,
+  "userId"    text not null references users (id) on delete cascade,
+  ip         text,
+  "userAgent" text,
+  "lastSeenAt" timestamptz not null default now(),
+  "expiresAt" timestamptz not null,
+  "createdAt" timestamptz not null default now()
+);
+create unique index sessions_token_hash_key on sessions ("tokenHash");
+create index sessions_user_idx on sessions ("userId");
+create index sessions_expires_idx on sessions ("expiresAt");
+
+create table login_attempts (
+  id        text primary key,
+  email     text not null,
+  ip        text,
+  success   boolean not null default false,
+  "userAgent" text,
+  "createdAt" timestamptz not null default now()
+);
+create index login_attempts_email_idx on login_attempts (email, "createdAt");
+create index login_attempts_ip_idx on login_attempts (ip, "createdAt");
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Beneficiaries — highly sensitive
+--
+--  `phoneEnc` / `emailEnc` / `notesEnc` hold AES-256-GCM ciphertext produced by
+--  the application; the key never reaches the database. `phoneHash` /
+--  `emailHash` are deterministic HMACs that make search and duplicate
+--  detection possible without decrypting anything.
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table clients (
+  id             text primary key,
+  code           text not null,
+  "fullName"     text not null,
+  "searchName"   text not null,
+  "phoneEnc"     text,
+  "emailEnc"     text,
+  "phoneHash"    text,
+  "emailHash"    text,
+  "phoneLast4"   text,
+  "emailMasked"  text,
+  "notesEnc"     text,
+
+  city           text,
+  "searchCity"   text,
+  "whoIsAsking"   who_is_asking not null default 'SELF',
+  "serviceInterest" text,
+  "programId"    text references content_items (id) on delete set null,
+  status         client_status not null default 'NEW',
+  source         text,
+  "preferredContactMethod" contact_method,
+
+  "assignedToId" text references users (id) on delete set null,
+  "consentGivenAt" timestamptz,
+  "consentIp"    text,
+
+  "createdAt"    timestamptz not null default now(),
+  "updatedAt"    timestamptz not null default now()
+);
+create unique index clients_code_key on clients (code);
+create index clients_status_idx on clients (status);
+create index clients_search_name_idx on clients ("searchName");
+create index clients_phone_hash_idx on clients ("phoneHash");
+create index clients_email_hash_idx on clients ("emailHash");
+create index clients_created_idx on clients ("createdAt");
+
+create table appointments (
+  id             text primary key,
+  "clientId"     text references clients (id) on delete set null,
+  "clientName"   text,
+  service        text not null,
+  "programId"    text references content_items (id) on delete set null,
+  "preferredDate" timestamptz not null,
+  "preferredTime" text,
+  status         appointment_status not null default 'PENDING',
+  "notesEnc"     text,
+  channel        text not null default 'BOOKING_FORM',
+  "createdAt"    timestamptz not null default now(),
+  "updatedAt"    timestamptz not null default now()
+);
+create index appointments_date_idx on appointments ("preferredDate");
+create index appointments_status_idx on appointments (status);
+
+create table contact_messages (
+  id           text primary key,
+  name         text not null,
+  "phoneEnc"   text,
+  "emailEnc"   text,
+  "phoneHash"  text,
+  "emailHash"  text,
+  subject      text,
+  "messageEnc" text not null,
+  topic        text,
+  "isRead"     boolean not null default false,
+  "isArchived" boolean not null default false,
+  "repliedAt"  timestamptz,
+  "consentGivenAt" timestamptz,
+  ip           text,
+  "userAgent"  text,
+  "createdAt"  timestamptz not null default now()
+);
+create index contact_messages_inbox_idx on contact_messages ("isRead", "isArchived");
+create index contact_messages_created_idx on contact_messages ("createdAt");
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Content
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table content_items (
+  id                 text primary key,
+  type               content_type not null,
+  slug               text not null,
+  title              text not null,
+  "shortDescription" text not null,
+  "fullDescription"  text not null,
+  icon               text,
+  image              text,
+  "imageAlt"         text,
+  audience           text,
+  "stepsJson"        text,
+  "benefitsJson"     text,
+  "outcomesJson"     text,
+  "notesJson"        text,
+  "durationLabel"    text,
+  "faqsJson"         text,
+  "seoTitle"         text,
+  "seoDescription"   text,
+  "order"            integer not null default 0,
+  "isActive"         boolean not null default true,
+  "isFeatured"       boolean not null default false,
+  "createdAt"        timestamptz not null default now(),
+  "updatedAt"        timestamptz not null default now()
+);
+create unique index content_items_type_slug_key on content_items (type, slug);
+create index content_items_type_order_idx on content_items (type, "order");
+
+create table categories (
+  id          text primary key,
+  name        text not null,
+  slug        text not null,
+  description text,
+  color       text,
+  "order"     integer not null default 0,
+  "isActive"  boolean not null default true
+);
+create unique index categories_slug_key on categories (slug);
+
+create table tags (
+  id   text primary key,
+  name text not null,
+  slug text not null
+);
+create unique index tags_slug_key on tags (slug);
+
+create table posts (
+  id                text primary key,
+  title             text not null,
+  slug              text not null,
+  "searchText"      text,
+  excerpt           text not null,
+  content           text not null,
+  "coverImage"      text,
+  "coverImageAlt"   text,
+  "categoryId"      text references categories (id) on delete set null,
+  "authorId"        text references users (id) on delete set null,
+  status            post_status not null default 'DRAFT',
+  "publishedAt"     timestamptz,
+  "scheduledAt"     timestamptz,
+  "seoTitle"        text,
+  "seoDescription"  text,
+  "noIndex"         boolean not null default false,
+  views             integer not null default 0,
+  "readingMinutes"  integer not null default 3,
+  "allowComments"   boolean not null default false,
+  "featuredOnHome"  boolean not null default false,
+  "createdAt"       timestamptz not null default now(),
+  "updatedAt"       timestamptz not null default now()
+);
+create unique index posts_slug_key on posts (slug);
+create index posts_status_published_idx on posts (status, "publishedAt");
+create index posts_category_idx on posts ("categoryId");
+create index posts_scheduled_idx on posts ("scheduledAt") where status = 'SCHEDULED';
+
+create table post_tags (
+  "postId" text not null references posts (id) on delete cascade,
+  "tagId"  text not null references tags (id) on delete cascade,
+  primary key ("postId", "tagId")
+);
+
+-- ── Ordered editorial blocks ──────────────────────────────────────────
+create table trust_items (
+  id          text primary key,
+  title       text not null,
+  description text,
+  icon        text not null default 'BadgeCheck',
+  "order"     integer not null default 0,
+  "isActive"  boolean not null default true
+);
+
+create table process_steps (
+  id          text primary key,
+  title       text not null,
+  description text not null,
+  icon        text not null default 'Compass',
+  "order"     integer not null default 0,
+  "isActive"  boolean not null default true
+);
+
+create table value_items (
+  id          text primary key,
+  title       text not null,
+  description text not null,
+  icon        text not null default 'Gem',
+  "order"     integer not null default 0,
+  "isActive"  boolean not null default true
+);
+
+create table why_items (
+  id          text primary key,
+  title       text not null,
+  description text not null,
+  icon        text not null default 'Star',
+  "order"     integer not null default 0,
+  "isActive"  boolean not null default true
+);
+
+create table statistics (
+  id           text primary key,
+  label        text not null,
+  value        text not null,
+  suffix       text,
+  prefix       text,
+  icon         text,
+  "isHighlight" boolean not null default false,
+  "order"      integer not null default 0,
+  "isActive"   boolean not null default true
+);
+
+create table testimonials (
+  id           text primary key,
+  quote        text not null,
+  "authorName" text,
+  "authorRole" text,
+  rating       integer not null default 5 check (rating between 1 and 5),
+  "isAnonymous" boolean not null default true,
+  image        text,
+  "order"      integer not null default 0,
+  "isActive"   boolean not null default true,
+  "createdAt"  timestamptz not null default now()
+);
+
+create table faqs (
+  id       text primary key,
+  question text not null,
+  answer   text not null,
+  category text not null default 'عام',
+  "order"  integer not null default 0,
+  "isActive" boolean not null default true
+);
+
+create table pages (
+  id             text primary key,
+  slug           text not null,
+  title          text not null,
+  subtitle       text,
+  content        text not null default '',
+  "seoTitle"     text,
+  "seoDescription" text,
+  "noIndex"      boolean not null default false,
+  "isPublished"  boolean not null default true,
+  "createdAt"    timestamptz not null default now(),
+  "updatedAt"    timestamptz not null default now()
+);
+create unique index pages_slug_key on pages (slug);
+
+create table site_settings (
+  id                   text primary key default 'singleton',
+  "siteName"           text not null default 'سوار وعي',
+  "siteNameEn"         text not null default 'Sewr Waie',
+  tagline              text not null default 'مركز الإحاطة بعلوم التعافي',
+  "logoPath"           text,
+  "logoAlt"            text,
+  "faviconPath"        text,
+  "blockAdminIndex"    boolean not null default true,
+
+  phone                text,
+  whatsapp             text,
+  "whatsappMessage"    text,
+  email                text,
+  address              text,
+  city                 text,
+  country              text not null default 'المملكة العربية السعودية',
+  "mapEmbedUrl"        text,
+  "mapLinkUrl"         text,
+  "workingHoursJson"   text,
+  "socialsJson"        text,
+
+  "heroBadge"          text,
+  "heroTitle"          text,
+  "heroDescription"    text,
+  "heroImage"          text,
+  "heroImageAlt"       text,
+  "homeAboutTitle"     text,
+  "homeAboutText"      text,
+  "homeAboutImage"     text,
+  "homeAboutImageAlt"  text,
+  "homeServicesTitle"  text,
+  "homeServicesText"   text,
+  "homeServicesCtaText" text,
+  "homeProgramsTitle"  text,
+  "homeProgramsText"   text,
+  "homeBlogTitle"      text,
+  "homeBlogText"       text,
+  "homeTestimonialsTitle" text,
+  "homeFaqTitle"       text,
+  "homeFaqText"        text,
+  "finalCtaBadge"      text,
+  "finalCtaTitle"      text,
+  "finalCtaText"       text,
+
+  "aboutHeroTitle"     text,
+  "aboutHeroText"      text,
+  "aboutWhoTitle"      text,
+  "aboutWhoText"       text,
+  "aboutVisionTitle"   text,
+  "aboutVisionText"    text,
+  "aboutMissionTitle"  text,
+  "aboutMissionText"   text,
+  "aboutValuesTitle"   text,
+  "aboutValuesText"    text,
+  "aboutVision2030Title" text,
+  "aboutVision2030Text"  text,
+  "aboutVision2030Image" text,
+  "aboutWhyTitle"      text,
+  "aboutWhyText"       text,
+
+  "seoTitle"           text,
+  "seoDescription"     text,
+  "seoKeywords"        text,
+  "ogImage"            text,
+  "analyticsCode"      text,
+
+  "notifyEmailEnabled" boolean not null default true,
+  "notificationEmail"  text,
+  "notifyOnNewClient"  boolean not null default true,
+  "notifyOnNewMessage" boolean not null default true,
+  "notifyOnNewBooking" boolean not null default true,
+
+  "primaryColor"       text not null default '#4B2A7B',
+  "accentColor"        text not null default '#D9A441',
+
+  "createdAt"          timestamptz not null default now(),
+  "updatedAt"          timestamptz not null default now(),
+  constraint site_settings_singleton check (id = 'singleton')
+);
+
+create table media_assets (
+  id             text primary key,
+  filename       text not null,
+  path           text not null,
+  "mimeType"     text not null,
+  size           integer not null,
+  width          integer,
+  height         integer,
+  alt            text,
+  folder         text not null default 'general',
+  "uploadedById" text references users (id) on delete set null,
+  "createdAt"    timestamptz not null default now()
+);
+create index media_assets_folder_idx on media_assets (folder);
+create index media_assets_created_idx on media_assets ("createdAt");
+
+create table activity_logs (
+  id         text primary key,
+  "userId"   text references users (id) on delete set null,
+  "userName" text,
+  action     text not null,
+  entity     text not null,
+  "entityId" text,
+  summary    text not null,
+  ip         text,
+  "createdAt" timestamptz not null default now()
+);
+create index activity_logs_entity_idx on activity_logs (entity, "entityId");
+create index activity_logs_created_idx on activity_logs ("createdAt");
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Updated-at triggers
+-- ═══════════════════════════════════════════════════════════════════════
+
+create or replace function touch_updated_at() returns trigger
+language plpgsql as $$
+begin
+  new."updatedAt" = now();
+  return new;
+end;
+$$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'users', 'clients', 'appointments', 'content_items',
+    'posts', 'pages', 'site_settings'
+  ] loop
+    execute format(
+      'create trigger %I_touch before update on %I
+       for each row execute function touch_updated_at()',
+      t, t
+    );
+  end loop;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Row-Level Security
+--
+--  The application connects with a privileged role and authorises every
+--  request itself (opaque sessions + a capability matrix). These policies are
+--  the second lock: if an anon or authenticated key ever reaches a browser,
+--  a leaked connection string, or a misconfigured dashboard, the default is
+--  still "no rows".
+--
+--  To use them from Supabase's client SDK, set a request-scoped role:
+--      select set_config('app.role', 'SUPER_ADMIN', true);
+--  and the policies below apply.
+-- ═══════════════════════════════════════════════════════════════════════
+
+create or replace function app_current_role() returns text
+language sql stable as $$
+  select nullif(current_setting('app.role', true), '');
+$$;
+
+create or replace function app_is_admin() returns boolean
+language sql stable as $$
+  select coalesce(app_current_role() in ('SUPER_ADMIN', 'EDITOR', 'RECEPTIONIST'), false);
+$$;
+
+create or replace function app_is_super_admin() returns boolean
+language sql stable as $$
+  select coalesce(app_current_role() = 'SUPER_ADMIN', false);
+$$;
+
+-- ── PUBLIC READ: content visitors may read ────────────────────────────
+
+alter table content_items  enable row level security;
+alter table categories     enable row level security;
+alter table tags           enable row level security;
+alter table posts          enable row level security;
+alter table pages          enable row level security;
+alter table site_settings  enable row level security;
+alter table trust_items    enable row level security;
+alter table process_steps  enable row level security;
+alter table value_items    enable row level security;
+alter table why_items      enable row level security;
+alter table statistics     enable row level security;
+alter table testimonials  enable row level security;
+alter table faqs           enable row level security;
+
+-- Only live content is publicly readable; drafts never leak.
+create policy content_public_read on content_items
+  for select using ("isActive" = true);
+
+create policy categories_public_read on categories
+  for select using ("isActive" = true);
+
+create policy tags_public_read on tags
+  for select using (true);
+
+create policy posts_public_read on posts
+  for select using (
+    status = 'PUBLISHED'
+    and "publishedAt" is not null
+    and "publishedAt" <= now()
+    and "noIndex" = false
+  );
+
+create policy pages_public_read on pages
+  for select using ("isPublished" = true);
+
+create policy settings_public_read on site_settings
+  for select using (id = 'singleton');
+
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'trust_items', 'process_steps', 'value_items',
+    'why_items', 'statistics', 'testimonials', 'faqs'
+  ] loop
+    execute format(
+      'create policy %I on %I for select using ("isActive" = true)', t, t
+    );
+  end loop;
+end $$;
+
+-- ── PRIVILEGED DATA: no direct access at all ──────────────────────────
+--
+--  clients / appointments / contact_messages / login_attempts / sessions /
+--  users / activity_logs are reachable only through the application, which
+--  authorises and decrypts. RLS denies everything by default; an admin
+--  session asserted through `app.role` unlocks exactly what it needs.
+
+alter table clients           enable row level security;
+alter table appointments      enable row level security;
+alter table contact_messages  enable row level security;
+alter table sessions          enable row level security;
+alter table login_attempts    enable row level security;
+alter table users             enable row level security;
+alter table media_assets      enable row level security;
+alter table activity_logs     enable row level security;
+
+-- Beneficiaries: SUPER_ADMIN and RECEPTIONIST only. EDITOR never sees them.
+create policy clients_staff_read on clients
+  for select using (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'));
+
+create policy clients_staff_write on clients
+  for all using (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'));
+
+create policy appointments_staff_access on appointments
+  for all using (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'));
+
+create policy messages_staff_access on contact_messages
+  for all using (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'));
+
+create policy sessions_owner_access on sessions
+  for all using (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'RECEPTIONIST'));
+
+create policy attempts_admin_only on login_attempts
+  for all using (app_is_super_admin()) with check (app_is_super_admin());
+
+create policy users_admin_only on users
+  for all using (app_is_super_admin()) with check (app_is_super_admin());
+
+create policy media_staff_read on media_assets
+  for select using (app_is_admin());
+
+create policy media_editor_write on media_assets
+  for all using (app_current_role() in ('SUPER_ADMIN', 'EDITOR'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'EDITOR'));
+
+create policy activity_admin_read on activity_logs
+  for select using (app_is_admin());
+
+create policy activity_admin_write on activity_logs
+  for insert with check (app_is_admin());
+
+-- ── Editors may manage editorial content ──────────────────────────────
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'content_items', 'categories', 'posts', 'pages',
+    'trust_items', 'process_steps', 'value_items',
+    'why_items', 'statistics', 'testimonials', 'faqs'
+  ] loop
+    execute format(
+      'create policy %I_editor_write on %I
+       for all using (app_current_role() in (''SUPER_ADMIN'', ''EDITOR''))
+       with check (app_current_role() in (''SUPER_ADMIN'', ''EDITOR''))',
+      t, t
+    );
+  end loop;
+end $$;
+
+create policy settings_admin_write on site_settings
+  for update using (app_current_role() = 'SUPER_ADMIN')
+  with check (app_current_role() = 'SUPER_ADMIN');
+
+create policy tags_editor_write on tags
+  for all using (app_current_role() in ('SUPER_ADMIN', 'EDITOR'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'EDITOR'));
+
+create policy post_tags_editor_write on post_tags
+  for all using (app_current_role() in ('SUPER_ADMIN', 'EDITOR'))
+  with check (app_current_role() in ('SUPER_ADMIN', 'EDITOR'));
+
+alter table post_tags enable row level security;
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Grants
+--
+--  The `anon` role (Supabase's public browser key) gets read-only access to
+--  published content and nothing else. Sensitive tables are not granted at
+--  all, so even a policy mistake cannot expose them.
+-- ═══════════════════════════════════════════════════════════════════════
+
+grant usage on schema public to anon, authenticated;
+
+grant select on
+  content_items, categories, tags, posts, pages, site_settings,
+  trust_items, process_steps, value_items, why_items,
+  statistics, testimonials, faqs
+to anon, authenticated;
+
+-- No grant at all on clients / appointments / contact_messages / users /
+-- sessions / login_attempts / activity_logs: reach them through the app.
+
+revoke all on clients            from anon, authenticated;
+revoke all on appointments       from anon, authenticated;
+revoke all on contact_messages   from anon, authenticated;
+revoke all on users              from anon, authenticated;
+revoke all on sessions           from anon, authenticated;
+revoke all on login_attempts     from anon, authenticated;
+revoke all on activity_logs      from anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Storage bucket for uploads
+-- ═══════════════════════════════════════════════════════════════════════
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'media',
+  'media',
+  true,                                   -- public: the site serves images directly
+  8388608,                                -- 8 MB, matches MAX_UPLOAD_BYTES
+  array[
+    'image/jpeg', 'image/png', 'image/webp', 'image/avif',
+    'image/gif', 'image/svg+xml', 'application/pdf'
+  ]
+)
+on conflict (id) do nothing;
+
+-- Uploads are written by the service role from the server only.
+drop policy if exists "media_public_read" on storage.objects;
+create policy "media_public_read" on storage.objects
+  for select using (bucket_id = 'media');
+
+-- ═══════════════════════════════════════════════════════════════════════
+--  Retention helpers (PDPL data minimisation)
+-- ═══════════════════════════════════════════════════════════════════════
+
+create or replace function prune_expired_sessions() returns integer
+language plpgsql as $$
+declare removed integer;
+begin
+  delete from sessions where "expiresAt" < now();
+  get diagnostics removed = row_count;
+  delete from login_attempts where "createdAt" < now() - interval '90 days';
+  return removed;
+end;
+$$;
+
+comment on function prune_expired_sessions() is
+  'Called by /api/cron/publish. Removes expired sessions and login attempts older than the PDPL retention window.';

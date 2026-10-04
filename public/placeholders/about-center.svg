@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="منطقة استقبال هادئة في المركز">
+  <defs>
+    <linearGradient id="bg-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FDFBF7"/>
+      <stop offset="52%" stop-color="#F3EBDD"/>
+      <stop offset="100%" stop-color="#E4D6F2"/>
+    </linearGradient>
+    <radialGradient id="sun-a" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF3D6"/>
+      <stop offset="45%" stop-color="#D9A441"/>
+      <stop offset="100%" stop-color="#D9A441" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade-a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.45"/>
+    </linearGradient>
+    <pattern id="dots-a" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#ffffff" fill-opacity="0.14"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg-a)"/>
+  <rect width="1200" height="800" fill="#FFFFFF" opacity="0.5"/>
+
+  <!-- wall art -->
+  <rect x="120" y="120" width="300" height="300" rx="28" fill="#FFFFFF" opacity="0.75"/>
+  <circle cx="270" cy="230" r="66" fill="none" stroke="#D9A441" stroke-width="10"/>
+  <path d="M270 300 L270 200 M270 250 L215 210 M270 250 L325 205" stroke="#4B2A7B" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- sofa -->
+  <rect x="520" y="470" width="520" height="180" rx="40" fill="#4B2A7B"/>
+  <rect x="540" y="380" width="480" height="120" rx="34" fill="#6B3FA0"/>
+  <rect x="520" y="620" width="60" height="34" rx="12" fill="#3A1F60"/>
+  <rect x="980" y="620" width="60" height="34" rx="12" fill="#3A1F60"/>
+
+  <!-- armchairs -->
+  <rect x="120" y="500" width="220" height="150" rx="34" fill="#7BA33F"/>
+  <rect x="135" y="430" width="190" height="90" rx="28" fill="#5E8530"/>
+  <rect x="135" y="640" width="42" height="26" rx="10" fill="#4B2A7B"/>
+  <rect x="285" y="640" width="42" height="26" rx="10" fill="#4B2A7B"/>
+
+  <!-- plant -->
+  <path d="M1040 654 C1030 590 1044 540 1064 512 C1074 552 1072 604 1064 654Z" fill="#5E8530"/>
+  <path d="M1064 654 C1078 596 1108 560 1140 550 C1122 596 1096 636 1064 654Z" fill="#7BA33F"/>
+  <rect x="1014" y="650" width="100" height="58" rx="16" fill="#4B2A7B"/>
+
+  <!-- rug -->
+  <ellipse cx="600" cy="742" rx="440" ry="40" fill="#4B2A7B" opacity="0.08"/>
+</svg>

@@ -1,36 +1,203 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# سوار وعي — Sewr Waie
 
-## Getting Started
+مركز متخصص في الإحاطة بعلوم التعافي. موقع عربي كامل (RTL) مع لوحة تحكم تُدار منها كل محتويات الموقع دون كتابة كود.
 
-First, run the development server:
+**اسم الشعار بالإنجليزية:** `Sewr Waie`
+
+---
+
+## البدء السريع
 
 ```bash
+npm install
+copy .env.example .env        # ويندوز   (cp على لينكس/ماك)
+npm run db:setup              # قاعدة البيانات + حساب المدير + المحتوى
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- الموقع: <http://localhost:3000>
+- لوحة التحكم: <http://localhost:3000/admin>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**بيانات الدخول الافتراضية:** `admin@sewrwaie.sa` / `SewrWaie@2026`
+> غيّرها فورًا من: لوحة التحكم ← المستخدمون ← تعديل ← كلمة المرور.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## الأوامر
 
-To learn more about Next.js, take a look at the following resources:
+| الأمر | الوظيفة |
+|---|---|
+| `npm run dev` | خادم التطوير |
+| `npm run build` | بناء الإنتاج |
+| `npm run start` | تشغيل نسخة الإنتاج |
+| `npm run typecheck` | فحص أنواع TypeScript |
+| `npm run lint` | فحص الجودة (ESLint) |
+| `npm run db:setup` | توليد العميل + الترحيلات + تعبئة المحتوى |
+| `npm run db:seed` | إعادة تعبئة المحتوى (آمنة — لا تحذف تعديلاتك) |
+| `npm run db:studio` | متصفح قاعدة البيانات البصري (Prisma Studio) |
+| `npm run content:lint` | فحص النصوص العربية في ملفات المحتوى والمكوّنات |
+| `npm run test:smoke` | فحص المسارات والحماية ورؤوس الأمان مقابل خادم يعمل |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ما الذي يحويه الموقع
 
-## Deploy on Vercel
+### صفحات عامة
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| الصفحة | المسار |
+|---|---|
+| الرئيسية | `/` |
+| من نحن | `/about` |
+| الخدمات | `/services` · `/services/[slug]` |
+| البرامج | `/programs` · `/programs/[slug]` |
+| البروتوكولات العلاجية | `/protocols` · `/protocols/[slug]` |
+| المدونة | `/blog` · `/blog/[slug]` |
+| تواصل معنا | `/contact` |
+| احجز استشارة | `/book` |
+| سياسة الخصوصية | `/privacy` |
+| الشروط والأحكام | `/terms` |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### لوحة التحكم `/admin`
+
+نظرة عامة · المستفيدون · المواعيد · الرسائل · المحتوى · المدونة · مكتبة الوسائط · إعدادات الموقع · المستخدمون · سجل النشاط · ملفي الشخصي
+
+---
+
+## البنية
+
+```
+sewr-waie/
+├── prisma/
+│   ├── schema.prisma          # مخطط قاعدة البيانات
+│   ├── seed.ts                # حساب المدير + المحتوى الأولي
+│   └── content/               # نصوص المحتوى العربية (مصدر الحقيقة)
+├── supabase/
+│   └── schema.sql             # PostgreSQL كامل + سياسات RLS
+├── docs/
+│   ├── DEPLOYMENT.md          # دليل النشر خطوة بخطوة
+│   └── ADMIN-GUIDE.md         # دليل استخدام اللوحة (بالعربية)
+├── public/
+│   ├── placeholders/          # صور SVG مؤقتة (استبدلها بصور حقيقية)
+│   ├── fonts/                 # خط Arabic لبطاقة المشاركة
+│   └── uploads/               # الصور المرفوعة (لا تُنشر في git)
+├── scripts/
+│   ├── generate-placeholders.ts   # توليد الصور المؤقتة
+│   ├── fetch-og-font.ts           # تنزيل خط بطاقة المشاركة
+│   ├── lint-content.ts            # فحص النصوص العربية في المحتوى
+│   ├── lint-jsx.ts                # فحص النصوص العربية في المكوّنات
+│   ├── smoke-test.ts              # فحص المسارات والأمان
+│   ├── verify-encryption.ts       # إثبات تشفير بيانات النموذج
+│   └── verify-booking.ts          # إثبات عمل نموذج الحجز
+└── src/
+    ├── app/
+    │   ├── layout.tsx        # الجذر: الخطوط + SEO فقط
+    │   ├── (site)/           # الموقع العام (رابطه بلا /(site))
+    │   ├── admin/            # لوحة التحكم
+    │   └── api/              # media · session · cron
+    ├── components/
+    │   ├── site/             # الهيدر، الفوتر، الأقسام، الشعار
+    │   ├── ui/               # نظام التصميم (أزرار، نماذج، أكورديون)
+    │   └── admin/            # مكوّنات اللوحة
+    └── lib/
+        ├── prisma.ts         # عميل قاعدة البيانات
+        ├── crypto.ts         # تشفير AES-256-GCM للبيانات الحساسة
+        ├── session.ts        # جلسات على الخادم (كوكي موقّع)
+        ├── auth.ts           # تسجيل الدخول + القفل ضد التخمين
+        ├── rbac.ts           # مصفوفة الصلاحيات
+        ├── sanitize.ts       # منقّي HTML للنصوص المُحرَّرة
+        ├── mailer.ts         # قوالب البريد
+        ├── storage.ts        # تخزين محلي أو Supabase
+        ├── queries.ts        # استعلامات العرض العام
+        ├── notifications.ts  # إشعارات الطلبات
+        └── validation.ts     # مخططات Zod
+```
+
+---
+
+## القرارات الهندسية
+
+### تشفير البيانات الحساسة
+
+بيانات المستفيدين تتعلق بالصحة والتعافي، فتخضع لنظام حماية البيانات الشخصية السعودي.
+
+- أرقام الجوال والبريد والملاحظات ونصوص الرسائل تُخزَّن **مشفّرة بـ AES‑256‑GCM**.
+- اسم المستفيد يُخزَّن نصيًا (يحتاجه البحث والترتيب)، والنسخة الصغيرة `searchName` تُستخدم للبحث غير الحساس لحالة الأحرف.
+- للبحث بالرقم دون فك التشفير، يُخزَّن **فهرس أعمى** (HMAC‑SHA256 ثابت): `05x 123 4567` و`+9665x1234567` يعطيان نفس الفهرس.
+- آخر ٤ أرقام ونسخة مُقنّعة من البريد تحفظان للعرض السريع دون فك التشفير.
+- لا تغادر الأعمدة المشفّرة الخادم إطلاقًا: العميل (Client Component) لا يستقبل إلا نصًا معروضًا.
+
+### المصادقة والصلاحيات
+
+- جلسة **على الخادم**: الكوكي يحمل رمزًا عشوائيًا فقط، وقاعدة البيانات تخزّن `SHA‑256` منه. تسريب قاعدة البيانات لا يسمح بانتحال جلسات.
+- الكوكي `httpOnly` + `SameSite=Lax` + `Secure` في الإنتاج + **موقّع** ليرفض أي تعديل قبل أي استعلام.
+- `bcrypt` بكلفة ١٢ لكلمات المرور.
+- قفل الحساب ١٥ دقيقة بعد ٥ محاولات، مع حدّ إضافي على مستوى IP.
+- إنهاء تلقائي للجلسة بعد فترة عدم نشاط (١٢٠ دقيقة افتراضيًا).
+- الصلاحيات عبر **قدرات** (`clients.edit`) لا عبر الأدوار مباشرة — فتعديل الصلاحيات لاحقًا لا يمسّ أي شاشة.
+
+### الحماية من XSS
+
+- كل نص مُحرَّر يمرّ على `sanitizeHtml()` بقائمة وسوم مسموحة صريحة، مع حذف كل معالجات الأحداث (`on*`) ومنع `javascript:` و`data:`.
+- `style` مسموح فقط كـ `text-align` على عناصر كتلية — فلا يمكن استخدامه لحقن تخطيط.
+- لا يُستخدم `dangerouslySetInnerHTML` إلا على محتوى مرّ بالمنقّي.
+
+### النماذج
+
+- تحقق **مزدوج**: Zod على الخادم (لا يُوثق بالمدخلات القادمة من المتصفح) + HTML5 على المتصفح.
+- حماية من الرسائل المزعجة بثلاث طبقات: حقل فخّ مخفي (honeypot)، حدّ زمني لملء النموذج، حدّ عدد الإرسال لكل IP في الساعة. reCAPTCHA v3 اختياري.
+- الموافقة على الخصوصية إلزامية وتُسجَّل مع الوقت وعنوان IP.
+
+### العربية واتجاه RTL
+
+- `<html lang="ar" dir="rtl">` في الجذر.
+- خصائص **منطقية** في كل مكان (`ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`) — فيعمل الاتجاهان دون تكرار CSS.
+- خطان: **IBM Plex Sans Arabic** للنص، **Noto Kufi Arabic** للعناوين.
+- نظام تصميم موحّد في `src/app/globals.css` (ألوان المركز والظلال والأنصاف والرسوم المتحركة).
+
+### الأداء وإتاحة الوصول
+
+- الصفحات العامة تُبنى مسبقًا (SSG) مع `revalidate` لخمس دقائق، وتُحدَّث فورًا بـ `revalidatePath` عند أي تعديل من اللوحة.
+- الصور عبر `next/image` بصيغتي AVIF وWebP.
+- حركات الظهور بـ IntersectionObserver بلا أي مكتبة، وتحترم `prefers-reduced-motion`.
+- **بدون JavaScript** يبقى كل المحتوى ظاهرًا: حالة الإخفاء مربوطة بفئة `js` يضيفها سكربت صغير قبل أول رسم.
+- رابط تخطٍ إلى المحتوى، تسميات ARIA، تباين ألوان مطابق، تنقّل كامل بلوحة المفاتيح.
+
+---
+
+## ما يجب تغييره قبل الإطلاق
+
+1. **الأرقام في الإحصائيات** — القيم الافتراضية (+500 / +90% / +50) مستمدة من التصميم، وليست أرقام مركزك. بدّلها من: المحتوى ← الإحصائيات.
+2. **الصور المؤقتة** في `public/placeholders/` — استبدلها بصور فوتوغرافية حقيقية من: الإعدادات ← الهوية، ومكتبة الوسائط.
+3. **بيانات التواصل** — الهاتف والواتساب والبريد والعنوان والساعات والخريطة.
+4. **كلمة مرور المدير** — فورًا.
+5. **الصفوف التجريبية** — احذف «مستفيد تجريبي» و«أسرة مستفيد تجريبي» و«جهة تعليمية تجريبية» من المستفيدين، و«زائر تجريبي» من الرسائل.
+6. **حسابات الموظفين** — أنشئ حسابًا لكل موظف بدل مشاركة حساب واحد.
+7. **الاسم في المؤلف** — المقالات موقّعة الآن بـ «فريق سوار وعي». استبدله باسم الكاتب الحقيقي من: المدونة ← تعديل المقال ← المؤلف.
+
+---
+
+## الأمان
+
+| الإجراء | التنفيذ |
+|---|---|
+| HTTPS | إجباري (Vercel أو Let's Encrypt) + HSTS |
+| كلمات المرور | `bcrypt` بكلفة ١٢ |
+| الجلسات | رموز عشوائية على الخادم، كوكي `httpOnly` + `Secure` + موقّع |
+| التخمين | قفل الحساب + حدّ على IP + تأخير بعد النجاح |
+| XSS | منقّي HTML بقائمة وسوم مسموحة |
+| SQL Injection | Prisma بمعاملات مربوطة — لا نصوص SQL مركّبة |
+| CSRF | SameSite=Kuki + التحقق من الجلسة على كل Server Action |
+| الصلاحيات | فحص في كل Server Action، لا في الواجهة فقط |
+| تسريب البيانات | الأعمدة المشفّرة لا تُمرَّر لمكوّنات العميل |
+| النسخ الاحتياطي | يومي (راجع `docs/DEPLOYMENT.md`) |
+| RLS | `supabase/schema.sql` — طبقة ثانية على PostgreSQL |
+
+---
+
+## الرخصة والمحتوى
+
+خطوط Google المستخدمة (IBM Plex Sans Arabic، Noto Kufi Arabic) تحت رخصة SIL Open Font License 1.1.
+
+الصور المؤقتة في `public/placeholders/` رسومات متجهية مولّدة بـ `scripts/generate-placeholders.ts` — استبدلها بصور حقيقية تملك حقوقها.
+
+النصوص الطبية مكتوبة بعناية ولا تتضمن ادعاءات علاجية أو أرقامًا مُختلقة. راجعها مختص قبل النشر.

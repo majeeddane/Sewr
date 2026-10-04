@@ -1,4 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ─────────────────────────────────────────────────────────────
+#  سوار وعي — .gitignore
+# ─────────────────────────────────────────────────────────────
 
 # dependencies
 /node_modules
@@ -10,19 +12,54 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
 # next.js
 /.next/
 /out/
+next-env.d.ts
+*.tsbuildinfo
 
 # production
 /build
 
-# misc
+# ── Environment ─────────────────────────────────────────────
+# Secrets never belong in the repository. Keep .env.example only.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ── Database ────────────────────────────────────────────────
+# Local SQLite development database and its journal files.
+prisma/*.db
+prisma/*.db-journal
+prisma/*.db-shm
+prisma/*.db-wal
+
+# ── Uploaded media ──────────────────────────────────────────
+# Runtime uploads are user data, not source. With
+# STORAGE_DRIVER=supabase nothing lands here; with the local
+# driver these files are on the server's disk, not in git.
+public/uploads/*
+!public/uploads/.gitkeep
+
+# ── Runtime artefacts ───────────────────────────────────────
+*.log
+server.log
+dev.log
+build.log
+verify.log
+lint.json
+docslint.txt
+.vercel
+
+# ── OS / editor ─────────────────────────────────────────────
 .DS_Store
+Thumbs.db
 *.pem
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
 # debug
 npm-debug.log*
@@ -30,12 +67,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# ── Explicitly tracked ──────────────────────────────────────
+# AGENTS.md points AI agents at the version-matched Next.js docs
+# that live in node_modules. Committing it keeps the tree clean.
+!AGENTS.md
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ── Note ────────────────────────────────────────────────────
+# public/fonts/IBMPlexSansArabic-Regular.ttf IS committed on purpose:
+# it is the OFL-licensed font the Open Graph image generator needs,
+# and vendoring it means the build never needs network access.
+# Regenerate with: npm run fonts:og

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="شخص جالس على صخرة يواجه شروق الشمس">
+  <defs>
+    <linearGradient id="bg-h" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2A1447"/>
+      <stop offset="52%" stop-color="#4B2A7B"/>
+      <stop offset="100%" stop-color="#8A5FB8"/>
+    </linearGradient>
+    <radialGradient id="sun-h" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF3D6"/>
+      <stop offset="45%" stop-color="#D9A441"/>
+      <stop offset="100%" stop-color="#D9A441" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade-h" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.45"/>
+    </linearGradient>
+    <pattern id="dots-h" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#ffffff" fill-opacity="0.14"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg-h)"/>
+  <rect width="1200" height="900" fill="url(#dots-h)"/>
+  <circle cx="983.9999999999999" cy="162" r="378" fill="#ffffff" opacity="0.05"/>
+  <circle cx="144" cy="774" r="306" fill="currentColor" opacity="0.05"/>
+
+  <!-- horizon glow -->
+  <ellipse cx="600" cy="640" rx="620" ry="300" fill="url(#sun-h)" opacity="0.55"/>
+  <circle cx="600" cy="612" r="96" fill="#FFF6E2" opacity="0.92"/>
+  <circle cx="600" cy="612" r="150" fill="url(#sun-h)" opacity="0.5"/>
+
+  <!-- distant ridge lines -->
+  <path d="M0 700 L190 596 L320 660 L470 566 L640 668 L820 588 L1000 662 L1200 592 L1200 900 L0 900Z" fill="#2A1447" opacity="0.45"/>
+  <path d="M0 762 L160 690 L330 748 L510 678 L700 754 L880 692 L1060 750 L1200 700 L1200 900 L0 900Z" fill="#1E0F36" opacity="0.6"/>
+
+  <!-- foreground rock -->
+  <path d="M300 900 C330 828 402 800 470 796 C556 790 636 812 690 846 C740 878 772 890 800 900Z" fill="#150A26"/>
+
+  <!-- seated figure, back to us -->
+  <g fill="#150A26">
+    <circle cx="536" cy="612" r="34"/>
+    <path d="M508 646 C498 700 500 742 512 772 L560 772 C572 738 574 698 564 646Z"/>
+    <path d="M512 764 C496 800 470 826 442 838 L470 866 C508 854 538 828 552 796Z"/>
+    <path d="M562 764 C578 798 604 822 634 834 L608 862 C570 850 540 824 526 794Z"/>
+  </g>
+
+  <rect width="1200" height="900" fill="url(#fade-h)"/>
+</svg>

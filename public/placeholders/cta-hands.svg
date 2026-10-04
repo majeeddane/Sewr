@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" role="img" aria-label="دعم ومساندة">
+  <defs>
+    <linearGradient id="bg-c" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2A1447"/>
+      <stop offset="52%" stop-color="#4B2A7B"/>
+      <stop offset="100%" stop-color="#8A5FB8"/>
+    </linearGradient>
+    <radialGradient id="sun-c" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF3D6"/>
+      <stop offset="45%" stop-color="#D9A441"/>
+      <stop offset="100%" stop-color="#D9A441" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade-c" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.45"/>
+    </linearGradient>
+    <pattern id="dots-c" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#ffffff" fill-opacity="0.14"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="700" fill="url(#bg-c)"/>
+  <circle cx="1000" cy="120" r="220" fill="#ffffff" opacity="0.05"/>
+  <circle cx="200" cy="600" r="180" fill="#D9A441" opacity="0.12"/>
+
+  <!-- two cupped hands -->
+  <path d="M180 430 C300 350 460 340 600 372 C740 404 900 402 1020 356 C1000 470 880 552 700 566 C500 582 300 546 180 430Z" fill="#FFFFFF" opacity="0.16"/>
+  <path d="M180 430 C300 350 460 340 600 372 C740 404 900 402 1020 356" fill="none" stroke="#D9A441" stroke-width="7" stroke-linecap="round" opacity="0.8"/>
+
+  <!-- small tree rising from the palms -->
+  <path d="M596 372 C590 330 594 302 600 282 C606 306 604 338 600 372Z" fill="#D9A441" opacity="0.9"/>
+  <g fill="#A8C46A" opacity="0.92">
+    <circle cx="600" cy="266" r="24"/>
+    <circle cx="566" cy="292" r="17"/>
+    <circle cx="634" cy="290" r="17"/>
+    <circle cx="582" cy="316" r="13"/>
+    <circle cx="618" cy="314" r="13"/>
+  </g>
+  <rect width="1200" height="700" fill="url(#fade-c)"/>
+</svg>

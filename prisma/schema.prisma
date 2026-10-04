@@ -1,0 +1,605 @@
+// ─────────────────────────────────────────────────────────────
+//  سوار وعي — Sewr Waie
+//  Prisma schema
+//
+//  Development  : provider = "sqlite"   (zero-config, file based)
+//  Production   : provider = "postgresql" (Supabase / Neon / VPS)
+//
+//  Switching to PostgreSQL is a two-line change (see docs/DEPLOYMENT.md):
+//    1. change `provider` below to "postgresql"
+//    2. set DATABASE_URL to your Postgres connection string
+//  A ready-to-run PostgreSQL migration with Row-Level Security lives in
+//  supabase/schema.sql.
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTHENTICATION & ACCESS CONTROL
+// ═══════════════════════════════════════════════════════════════
+
+/// Dashboard users. Roles: SUPER_ADMIN | EDITOR | RECEPTIONIST
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  /// Lower-cased copy of `email`, used for case-insensitive lookups.
+  emailLower   String    @unique
+  passwordHash String
+  /// SUPER_ADMIN | EDITOR | RECEPTIONIST
+  role         String    @default("EDITOR")
+  jobTitle     String?
+  avatarUrl    String?
+  phone        String?
+
+  isActive           Boolean @default(true)
+  twoFactorEnabled   Boolean @default(false)
+  twoFactorSecretEnc String?
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  lastLoginIp      String?
+  passwordChangedAt DateTime @default(now())
+  /// Set when an admin asks the system to e-mail a reset link.
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions        Session[]
+  posts           Post[]
+  mediaAssets     MediaAsset[]
+  activityLogs    ActivityLog[]
+  assignedClients Client[]        @relation("AssignedClients")
+
+  @@index([role])
+  @@map("users")
+}
+
+/// Opaque server-side session. The cookie only carries a random token.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  /// Last time we saw activity — used for the idle-timeout rule.
+  lastSeenAt DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Rolling audit trail of authentication attempts (brute-force defence).
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String?
+  success   Boolean  @default(false)
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@map("login_attempts")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BENEFICIARIES / LEADS  (highly sensitive — columns are encrypted)
+// ═══════════════════════════════════════════════════════════════
+
+/// A person who reached out: a beneficiary, a family member, or an institution.
+model Client {
+  id   String @id @default(cuid())
+  /// Human-readable reference, e.g. "SW-0007".
+  code String @unique
+
+  fullName String
+  /// Lower-cased copy of `fullName` for portable case-insensitive search.
+  searchName String
+
+  // ── Encrypted at rest (AES-256-GCM) ────────────────────────
+  /// v1:iv:tag:ciphertext
+  phoneEnc String?
+  emailEnc String?
+  /// HMAC blind index — lets us search/duplicate-check without decrypting.
+  phoneHash String?
+  emailHash String?
+  /// Last 4 digits only, for safe display in list views.
+  phoneLast4 String?
+  emailMasked String?
+  notesEnc String?
+
+  city        String?
+  searchCity  String?
+  /// SELF | FAMILY | INSTITUTION | OTHER
+  whoIsAsking String  @default("SELF")
+  /// Free text: which service they are asking about.
+  serviceInterest String?
+  /// Optional link to a Program (a ContentItem of type PROGRAM).
+  programId   String?
+  program     ContentItem?  @relation("ClientProgram", fields: [programId], references: [id], onDelete: SetNull)
+
+  /// NEW | CONTACTED | BOOKED | COMPLETED | CLOSED
+  status     String  @default("NEW")
+  /// Where the lead came from: website, instagram, referral, event…
+  source     String?
+  /// PHONE | WHATSAPP | EMAIL
+  preferredContactMethod String? @default("PHONE")
+
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedClients", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  /// PDPL consent bookkeeping.
+  consentGivenAt DateTime?
+  consentIp      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([status])
+  @@index([searchName])
+  @@index([phoneHash])
+  @@index([emailHash])
+  @@index([createdAt])
+  @@map("clients")
+}
+
+/// A requested consultation.
+model Appointment {
+  id       String  @id @default(cuid())
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  /// Snapshot of the name, so walk-ins without a Client row still work.
+  clientName String?
+  service    String
+  programId  String?
+  program    ContentItem? @relation("AppointmentProgram", fields: [programId], references: [id], onDelete: SetNull)
+
+  preferredDate DateTime
+  /// Stored as a free string ("09:30") to stay timezone-agnostic.
+  preferredTime String?
+  /// PENDING | CONFIRMED | CANCELLED | DONE | NO_SHOW
+  status        String  @default("PENDING")
+  notesEnc      String?
+  /// BOOKING_FORM | RECEPTION | PHONE | WHATSAPP | WALK_IN
+  channel       String  @default("BOOKING_FORM")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([preferredDate])
+  @@index([status])
+  @@map("appointments")
+}
+
+/// Messages sent through the public contact form.
+model ContactMessage {
+  id    String  @id @default(cuid())
+  name  String
+  /// Encrypted contact details.
+  phoneEnc String?
+  emailEnc String?
+  phoneHash String?
+  emailHash String?
+  subject String?
+  messageEnc String
+  /// Contact reason dropdown value.
+  topic String?
+
+  isRead    Boolean   @default(false)
+  isArchived Boolean  @default(false)
+  repliedAt  DateTime?
+
+  /// Set when the visitor submitted the privacy-policy consent box.
+  consentGivenAt DateTime?
+
+  ip      String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([isRead, isArchived])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTENT
+// ═══════════════════════════════════════════════════════════════
+
+/// Services, Programs and Therapeutic Protocols share one table so the
+/// dashboard can reuse a single editor for all three.
+/// `type` is one of: SERVICE | PROGRAM | PROTOCOL
+model ContentItem {
+  id   String @id @default(cuid())
+  type String
+  slug String
+  title String
+  shortDescription String
+  fullDescription  String
+
+  /// Lucide icon name, e.g. "HeartHandshake".
+  icon  String?
+  image String?
+  imageAlt String?
+
+  /// "مناسبة لمن" — rendered on the detail page.
+  audience String?
+  /// "كيف تسير الجلسة/البرنامج" — JSON: [{ title, description }]
+  stepsJson String?
+  /// "ماذا تحقق" — JSON: [string]
+  benefitsJson String?
+  /// "مخرجات متوقعة" — JSON: [string]
+  outcomesJson String?
+  /// "ملاحظات مهنية" — JSON: [string]
+  notesJson String?
+  durationLabel String?
+  /// FAQ attached to this specific service/program — JSON: [{ question, answer }]
+  faqsJson String?
+
+  seoTitle       String?
+  seoDescription String?
+
+  order      Int     @default(0)
+  isActive   Boolean @default(true)
+  /// Highlighted on the home page.
+  isFeatured Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients          Client[]     @relation("ClientProgram")
+  appointments     Appointment[] @relation("AppointmentProgram")
+
+  @@unique([type, slug])
+  @@index([type, order])
+  @@map("content_items")
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  color       String?
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model Post {
+  id    String @id @default(cuid())
+  title String
+  slug  String @unique
+  /// Lower-cased title + excerpt, for portable search.
+  searchText String?
+  excerpt String
+  /// Rich text (HTML) produced by the dashboard editor.
+  content String
+
+  coverImage String?
+  coverImageAlt String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  /// DRAFT | SCHEDULED | PUBLISHED
+  status      String    @default("DRAFT")
+  publishedAt DateTime?
+  /// When a SCHEDULED post should go live.
+  scheduledAt DateTime?
+
+  seoTitle       String?
+  seoDescription String?
+  /// Allow the post to appear in search engines (default true).
+  noIndex       Boolean @default(false)
+
+  views           Int       @default(0)
+  readingMinutes  Int       @default(3)
+  allowComments   Boolean   @default(false)
+  featuredOnHome  Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tags PostTag[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@map("posts")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  EDITORIAL BLOCKS  (everything the dashboard can reorder)
+// ═══════════════════════════════════════════════════════════════
+
+/// Six-item trust bar under the hero.
+model TrustItem {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  icon        String  @default("BadgeCheck")
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  @@map("trust_items")
+}
+
+/// "منهجية التعافي" — the five-step methodology.
+model ProcessStep {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  icon        String  @default("Compass")
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  @@map("process_steps")
+}
+
+/// القيم
+model ValueItem {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  icon        String  @default("Gem")
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  @@map("value_items")
+}
+
+/// "لماذا تختارنا"
+model WhyItem {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  icon        String  @default("Star")
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  @@map("why_items")
+}
+
+/// Purple statistics band.
+model Statistic {
+  id      String @id @default(cuid())
+  label   String
+  value   String
+  suffix  String?
+  prefix  String?
+  icon    String?
+  /// Render as a bigger "highlight" tile instead of a number.
+  isHighlight Boolean @default(false)
+  order   Int    @default(0)
+  isActive Boolean @default(true)
+
+  @@map("statistics")
+}
+
+model Testimonial {
+  id         String  @id @default(cuid())
+  quote      String
+  /// Null when the person asked to stay anonymous.
+  authorName String?
+  authorRole String?
+  /// 1..5
+  rating     Int     @default(5)
+  isAnonymous Boolean @default(true)
+  image      String?
+  order      Int     @default(0)
+  isActive   Boolean @default(true)
+  createdAt  DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model Faq {
+  id       String @id @default(cuid())
+  question String
+  answer   String
+  category String  @default("عام")
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+
+  @@map("faqs")
+}
+
+/// Free-form long-form pages (privacy policy, terms, about, …).
+model Page {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  subtitle    String?
+  /// Rich text (HTML).
+  content     String  @default("")
+  seoTitle    String?
+  seoDescription String?
+  /// Hidden pages stay reachable by URL but leave the sitemap.
+  noIndex     Boolean @default(false)
+  isPublished Boolean @default(true)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("pages")
+}
+
+/// Singleton row (id = "singleton") holding every editable site setting.
+model SiteSetting {
+  id String @id @default("singleton")
+
+  // ── Identity ────────────────────────────────────────────────
+  siteName       String @default("سوار وعي")
+  siteNameEn     String @default("Sewr Waie")
+  tagline        String @default("مركز الإحاطة بعلوم التعافي")
+  logoPath       String?
+  logoAlt        String?
+  faviconPath    String?
+  /// Prevents the admin panel from being indexed.
+  blockAdminIndex Boolean @default(true)
+
+  // ── Contact ─────────────────────────────────────────────────
+  phone          String?
+  whatsapp       String?
+  whatsappMessage String?
+  email          String?
+  address        String?
+  city           String?
+  country        String @default("المملكة العربية السعودية")
+  mapEmbedUrl    String?
+  mapLinkUrl     String?
+  /// JSON: [{ day: "الأحد", hours: "9:00 ص – 9:00 م" }]
+  workingHoursJson String?
+
+  // ── Social ──────────────────────────────────────────────────
+  /// JSON: { x: "", instagram: "", linkedin: "", youtube: "", tiktok: "" }
+  socialsJson String?
+
+  // ── Home ────────────────────────────────────────────────────
+  heroBadge       String?
+  heroTitle       String?
+  heroDescription String?
+  heroImage       String?
+  heroImageAlt    String?
+  homeAboutTitle  String?
+  homeAboutText   String?
+  homeAboutImage  String?
+  homeAboutImageAlt String?
+  homeServicesTitle    String?
+  homeServicesText     String?
+  homeServicesCtaText  String?
+  homeProgramsTitle    String?
+  homeProgramsText     String?
+  homeBlogTitle        String?
+  homeBlogText         String?
+  homeTestimonialsTitle String?
+  homeFaqTitle      String?
+  homeFaqText       String?
+  finalCtaBadge    String?
+  finalCtaTitle    String?
+  finalCtaText     String?
+
+  // ── About ───────────────────────────────────────────────────
+  aboutHeroTitle    String?
+  aboutHeroText     String?
+  aboutWhoTitle     String?
+  aboutWhoText      String?
+  aboutVisionTitle  String?
+  aboutVisionText   String?
+  aboutMissionTitle String?
+  aboutMissionText  String?
+  aboutValuesTitle  String?
+  aboutValuesText   String?
+  aboutVision2030Title String?
+  aboutVision2030Text  String?
+  aboutVision2030Image String?
+  aboutWhyTitle     String?
+  aboutWhyText      String?
+
+  // ── SEO ─────────────────────────────────────────────────────
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  ogImage        String?
+  analyticsCode  String?
+
+  // ── Notifications ───────────────────────────────────────────
+  notifyEmailEnabled Boolean @default(true)
+  notificationEmail  String?
+  notifyOnNewClient   Boolean @default(true)
+  notifyOnNewMessage  Boolean @default(true)
+  notifyOnNewBooking  Boolean @default(true)
+
+  // ── Brand colours (overridable) ─────────────────────────────
+  primaryColor String @default("#4B2A7B")
+  accentColor  String @default("#D9A441")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MEDIA & AUDIT
+// ═══════════════════════════════════════════════════════════════
+
+model MediaAsset {
+  id       String @id @default(cuid())
+  filename String
+  /// Public URL, e.g. "/uploads/2026/02/abc.webp"
+  path     String
+  mimeType String
+  size     Int
+  width    Int?
+  height   Int?
+  alt      String?
+  folder   String  @default("general")
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([folder])
+  @@index([createdAt])
+  @@map("media_assets")
+}
+
+/// "Who changed what, and when".
+model ActivityLog {
+  id       String  @id @default(cuid())
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName String?
+  /// CREATE | UPDATE | DELETE | LOGIN | LOGOUT | PUBLISH | EXPORT | …
+  action   String
+  /// Client | Post | ContentItem | SiteSetting | User | …
+  entity   String
+  entityId String?
+  summary  String
+  ip       String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

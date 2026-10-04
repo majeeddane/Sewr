@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="نمو وتوسّع الأثر">
+  <defs>
+    <linearGradient id="bg-v" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2A1447"/>
+      <stop offset="52%" stop-color="#3A1F60"/>
+      <stop offset="100%" stop-color="#5E8530"/>
+    </linearGradient>
+    <radialGradient id="sun-v" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF3D6"/>
+      <stop offset="45%" stop-color="#A8C46A"/>
+      <stop offset="100%" stop-color="#A8C46A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade-v" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.45"/>
+    </linearGradient>
+    <pattern id="dots-v" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#ffffff" fill-opacity="0.14"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg-v)"/>
+  <circle cx="600" cy="240" r="180" fill="url(#sun-v)" opacity="0.35"/>
+  <circle cx="600" cy="240" r="86" fill="#FFF6E2" opacity="0.85"/>
+
+  <!-- growth bars -->
+  <g fill="#A8C46A" opacity="0.85">
+    <rect x="300" y="520" width="90" height="200" rx="18"/>
+    <rect x="430" y="452" width="90" height="268" rx="18"/>
+    <rect x="560" y="380" width="90" height="340" rx="18"/>
+    <rect x="690" y="300" width="90" height="420" rx="18"/>
+    <rect x="820" y="220" width="90" height="500" rx="18" opacity="0.6"/>
+  </g>
+
+  <!-- tree growing out of the last bar -->
+  <path d="M865 220 C858 168 862 132 872 106 C880 138 878 176 872 220Z" fill="#2A1447" opacity="0.7"/>
+  <g fill="#D9A441" opacity="0.9">
+    <circle cx="872" cy="88" r="20"/>
+    <circle cx="840" cy="112" r="15"/>
+    <circle cx="906" cy="110" r="15"/>
+  </g>
+  <rect width="1200" height="800" fill="url(#dots-v)"/>
+</svg>
