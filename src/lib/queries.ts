@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { parseJson, truncate, readingMinutes } from "./utils";
+import { safeQuery } from "./db-fallback";
 import type { ContentType } from "./enums";
 
 /**
@@ -41,34 +42,41 @@ export interface PublicContentItem {
 // ── Content items ─────────────────────────────────────────────
 
 export const getContentItems = cache(
-  async (type: ContentType, opts: { featuredOnly?: boolean; limit?: number } = {}) => {
-    const items = await prisma.contentItem.findMany({
-      where: {
-        type,
-        isActive: true,
-        ...(opts.featuredOnly ? { isFeatured: true } : {}),
-      },
-      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      ...(opts.limit ? { take: opts.limit } : {}),
-    });
-    return items.map(toPublicItem);
-  },
+  async (type: ContentType, opts: { featuredOnly?: boolean; limit?: number } = {}) =>
+    safeQuery<PublicContentItem[]>("contentItems", async () => {
+      const items = await prisma.contentItem.findMany({
+        where: {
+          type,
+          isActive: true,
+          ...(opts.featuredOnly ? { isFeatured: true } : {}),
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        ...(opts.limit ? { take: opts.limit } : {}),
+      });
+      return items.map(toPublicItem);
+    }, []),
 );
 
 export const getContentItemBySlug = cache(
-  async (type: ContentType, slug: string): Promise<PublicContentItem | null> => {
-    const item = await prisma.contentItem.findFirst({
-      where: { type, slug, isActive: true },
-    });
-    return item ? toPublicItem(item) : null;
-  },
+  async (type: ContentType, slug: string): Promise<PublicContentItem | null> =>
+    safeQuery<PublicContentItem | null>("contentItemBySlug", async () => {
+      const item = await prisma.contentItem.findFirst({
+        where: { type, slug, isActive: true },
+      });
+      return item ? toPublicItem(item) : null;
+    }, null),
 );
 
-export const getAllContentSlugs = cache(async (type: ContentType) =>
-  prisma.contentItem.findMany({
-    where: { type, isActive: true },
-    select: { slug: true },
-  }),
+export const getAllContentSlugs = cache((type: ContentType) =>
+  safeQuery<Array<{ slug: string }>>(
+    "contentSlugs",
+    () =>
+      prisma.contentItem.findMany({
+        where: { type, isActive: true },
+        select: { slug: true },
+      }),
+    [],
+  ),
 );
 
 type RawItem = Awaited<ReturnType<typeof prisma.contentItem.findFirstOrThrow>>;
@@ -100,53 +108,67 @@ export function toPublicItem(item: RawItem): PublicContentItem {
 
 // ── Home page blocks ──────────────────────────────────────────
 
-export const getTrustItems = cache(async () =>
-  prisma.trustItem.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  }),
+export const getTrustItems = cache(() =>
+  safeQuery("trustItems", () =>
+    prisma.trustItem.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
-export const getProcessSteps = cache(async () =>
-  prisma.processStep.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  }),
+export const getProcessSteps = cache(() =>
+  safeQuery("processSteps", () =>
+    prisma.processStep.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
-export const getValueItems = cache(async () =>
-  prisma.valueItem.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  }),
+export const getValueItems = cache(() =>
+  safeQuery("valueItems", () =>
+    prisma.valueItem.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
-export const getWhyItems = cache(async () =>
-  prisma.whyItem.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  }),
+export const getWhyItems = cache(() =>
+  safeQuery("whyItems", () =>
+    prisma.whyItem.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
-export const getStatistics = cache(async () =>
-  prisma.statistic.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  }),
+export const getStatistics = cache(() =>
+  safeQuery("statistics", () =>
+    prisma.statistic.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
-export const getTestimonials = cache(async () =>
-  prisma.testimonial.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  }),
+export const getTestimonials = cache(() =>
+  safeQuery("testimonials", () =>
+    prisma.testimonial.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
-export const getFaqs = cache(async (category?: string) =>
-  prisma.faq.findMany({
-    where: { isActive: true, ...(category ? { category } : {}) },
-    orderBy: { order: "asc" },
-  }),
+export const getFaqs = cache((category?: string) =>
+  safeQuery("faqs", () =>
+    prisma.faq.findMany({
+      where: { isActive: true, ...(category ? { category } : {}) },
+      orderBy: { order: "asc" },
+    }),
+  []),
 );
 
 // ── Blog ──────────────────────────────────────────────────────
@@ -212,102 +234,126 @@ export function toPublicPost(post: RawPost): PublicPost {
 }
 
 export const getPublishedPosts = cache(
-  async (opts: { limit?: number; categorySlug?: string; tagSlug?: string; excludeId?: string } = {}) => {
-    const posts = await prisma.post.findMany({
-      where: {
-        status: "PUBLISHED",
-        publishedAt: { lte: new Date() },
-        noIndex: false,
-        ...(opts.categorySlug ? { category: { slug: opts.categorySlug } } : {}),
-        ...(opts.tagSlug ? { tags: { some: { tag: { slug: opts.tagSlug } } } } : {}),
-        ...(opts.excludeId ? { id: { not: opts.excludeId } } : {}),
-      },
-      include: POST_INCLUDE,
-      orderBy: { publishedAt: "desc" },
-      ...(opts.limit ? { take: opts.limit } : {}),
-    });
-    return posts.map(toPublicPost);
-  },
+  async (opts: { limit?: number; categorySlug?: string; tagSlug?: string; excludeId?: string } = {}) =>
+    safeQuery<PublicPost[]>("publishedPosts", async () => {
+      const posts = await prisma.post.findMany({
+        where: {
+          status: "PUBLISHED",
+          publishedAt: { lte: new Date() },
+          noIndex: false,
+          ...(opts.categorySlug ? { category: { slug: opts.categorySlug } } : {}),
+          ...(opts.tagSlug ? { tags: { some: { tag: { slug: opts.tagSlug } } } } : {}),
+          ...(opts.excludeId ? { id: { not: opts.excludeId } } : {}),
+        },
+        include: POST_INCLUDE,
+        orderBy: { publishedAt: "desc" },
+        ...(opts.limit ? { take: opts.limit } : {}),
+      });
+      return posts.map(toPublicPost);
+    }, []),
 );
 
-export const getPostBySlug = cache(async (slug: string) => {
-  const post = await prisma.post.findFirst({
-    where: { slug, status: "PUBLISHED", publishedAt: { lte: new Date() } },
-    include: POST_INCLUDE,
-  });
-  return post ? toPublicPost(post) : null;
-});
+export const getPostBySlug = cache((slug: string) =>
+  safeQuery<PublicPost | null>("postBySlug", async () => {
+    const post = await prisma.post.findFirst({
+      where: { slug, status: "PUBLISHED", publishedAt: { lte: new Date() } },
+      include: POST_INCLUDE,
+    });
+    return post ? toPublicPost(post) : null;
+  }, null),
+);
 
 /** Same category first, then anything else recent. */
 export const getRelatedPosts = cache(
-  async (postId: string, categoryId: string | null) => {
-    const candidates = await prisma.post.findMany({
-      where: {
-        status: "PUBLISHED",
-        publishedAt: { lte: new Date() },
-        id: { not: postId },
-      },
-      include: POST_INCLUDE,
-      orderBy: { publishedAt: "desc" },
-      take: 12,
-    });
+  (postId: string, categoryId: string | null) =>
+    safeQuery<PublicPost[]>("relatedPosts", async () => {
+      const candidates = await prisma.post.findMany({
+        where: {
+          status: "PUBLISHED",
+          publishedAt: { lte: new Date() },
+          id: { not: postId },
+        },
+        include: POST_INCLUDE,
+        orderBy: { publishedAt: "desc" },
+        take: 12,
+      });
 
-    // Same-category posts float to the top, the rest keep date order.
-    const posts = [
-      ...candidates.filter((p) => p.categoryId && p.categoryId === categoryId),
-      ...candidates.filter((p) => !p.categoryId || p.categoryId !== categoryId),
-    ].slice(0, 3);
+      // Same-category posts float to the top, the rest keep date order.
+      const posts = [
+        ...candidates.filter((p) => p.categoryId && p.categoryId === categoryId),
+        ...candidates.filter((p) => !p.categoryId || p.categoryId !== categoryId),
+      ].slice(0, 3);
 
-    return posts.map(toPublicPost);
-  },
+      return posts.map(toPublicPost);
+    }, []),
 );
 
-export const getPostSlugs = cache(async () =>
-  prisma.post.findMany({
-    where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
-    select: { slug: true, updatedAt: true },
-  }),
+export const getPostSlugs = cache(() =>
+  safeQuery<Array<{ slug: string; updatedAt: Date }>>(
+    "postSlugs",
+    () =>
+      prisma.post.findMany({
+        where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+        select: { slug: true, updatedAt: true },
+      }),
+    [],
+  ),
 );
 
-export const getCategories = cache(async () =>
-  prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-    include: { _count: { select: { posts: true } } },
-  }),
+export const getCategories = cache(() =>
+  safeQuery("categories", () =>
+    prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+      include: { _count: { select: { posts: true } } },
+    }),
+  []),
 );
 
-export const getPopularTags = cache(async (take = 20) =>
-  prisma.tag.findMany({
-    orderBy: { posts: { _count: "desc" } },
-    take,
-  }),
+export const getPopularTags = cache((take = 20) =>
+  safeQuery("popularTags", () =>
+    prisma.tag.findMany({
+      orderBy: { posts: { _count: "desc" } },
+      take,
+    }),
+  []),
 );
 
 // ── Static pages ──────────────────────────────────────────────
 
-export const getPageBySlug = cache(async (slug: string) =>
-  prisma.page.findFirst({ where: { slug, isPublished: true } }),
+export const getPageBySlug = cache((slug: string) =>
+  safeQuery("pageBySlug", () =>
+    prisma.page.findFirst({ where: { slug, isPublished: true } }),
+  null),
 );
 
-export const getAllPageSlugs = cache(async () =>
-  prisma.page.findMany({
-    where: { isPublished: true, noIndex: false },
-    select: { slug: true, updatedAt: true },
-  }),
+export const getAllPageSlugs = cache(() =>
+  safeQuery<Array<{ slug: string; updatedAt: Date }>>(
+    "pageSlugs",
+    () =>
+      prisma.page.findMany({
+        where: { isPublished: true, noIndex: false },
+        select: { slug: true, updatedAt: true },
+      }),
+    [],
+  ),
 );
 
 // ── Counts used by the public footer / dashboard ──────────────
 
-export const getContentCounts = cache(async () => {
-  const [services, programs, protocols, posts] = await Promise.all([
-    prisma.contentItem.count({ where: { type: "SERVICE", isActive: true } }),
-    prisma.contentItem.count({ where: { type: "PROGRAM", isActive: true } }),
-    prisma.contentItem.count({ where: { type: "PROTOCOL", isActive: true } }),
-    prisma.post.count({ where: { status: "PUBLISHED", publishedAt: { lte: new Date() } } }),
-  ]);
-  return { services, programs, protocols, posts };
-});
+export const getContentCounts = cache(() =>
+  safeQuery("contentCounts", async () => {
+    const [services, programs, protocols, posts] = await Promise.all([
+      prisma.contentItem.count({ where: { type: "SERVICE", isActive: true } }),
+      prisma.contentItem.count({ where: { type: "PROGRAM", isActive: true } }),
+      prisma.contentItem.count({ where: { type: "PROTOCOL", isActive: true } }),
+      prisma.post.count({
+        where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+      }),
+    ]);
+    return { services, programs, protocols, posts };
+  }, { services: 0, programs: 0, protocols: 0, posts: 0 }),
+);
 
 /** Meta description helper — falls back to the page excerpt, then the text. */
 export function metaDescription(...candidates: Array<string | null | undefined>): string {

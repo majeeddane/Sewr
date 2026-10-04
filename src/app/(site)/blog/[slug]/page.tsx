@@ -10,6 +10,7 @@ import {
   Quote,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/db-fallback";
 import {
   getPostBySlug,
   getPostSlugs,
@@ -82,10 +83,15 @@ export default async function PostPage({
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const raw = await prisma.post.findUnique({
-    where: { id: post.id },
-    select: { categoryId: true },
-  });
+  const raw = await safeQuery(
+    "postCategory",
+    () =>
+      prisma.post.findUnique({
+        where: { id: post.id },
+        select: { categoryId: true },
+      }),
+    null,
+  );
   const related = await getRelatedPosts(post.id, raw?.categoryId ?? null);
 
   // Fire-and-forget view counter. Never blocks rendering and never throws.

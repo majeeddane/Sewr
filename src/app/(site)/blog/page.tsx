@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/site/common";
 import { publishDuePosts } from "@/lib/notifications";
 import { getCategories, getPopularTags, getPublishedPosts, toPublicPost } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/db-fallback";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -46,21 +47,25 @@ export default async function BlogPage({
   // category/tag filtering is handled by the cached helper.
   let posts;
   if (query) {
-    const rows = await prisma.post.findMany({
-      where: {
-        status: "PUBLISHED",
-        publishedAt: { lte: new Date() },
-        searchText: { contains: query.toLowerCase() },
-      },
-      include: {
-        category: true,
-        author: { select: { id: true, name: true, avatarUrl: true } },
-        tags: { include: { tag: true } },
-      },
-      orderBy: { publishedAt: "desc" },
-      skip: (page - 1) * PER_PAGE,
-      take: PER_PAGE,
-    });
+    const rows = await safeQuery(
+      "blogSearch",
+      () =>
+        prisma.post.findMany({
+          where: {
+            status: "PUBLISHED",
+            publishedAt: { lte: new Date() },
+            searchText: { contains: query.toLowerCase() },
+          },
+          include: {
+            category: true,
+            author: { select: { id: true, name: true, avatarUrl: true } },
+            tags: { include: { tag: true } },
+          },
+          orderBy: { publishedAt: "desc" },
+          skip: (page - 1) * PER_PAGE,
+          take: PER_PAGE,
+        }),
+    []);
     posts = rows.map(toPublicPost);
   } else {
     posts = await getPublishedPosts({
@@ -71,21 +76,31 @@ export default async function BlogPage({
   }
 
   const total = query
-    ? await prisma.post.count({
-        where: {
-          status: "PUBLISHED",
-          publishedAt: { lte: new Date() },
-          searchText: { contains: query.toLowerCase() },
-        },
-      })
-    : await prisma.post.count({
-        where: {
-          status: "PUBLISHED",
-          publishedAt: { lte: new Date() },
-          ...(category ? { category: { slug: category } } : {}),
-          ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
-        },
-      });
+    ? await safeQuery(
+        "blogSearchCount",
+        () =>
+          prisma.post.count({
+            where: {
+              status: "PUBLISHED",
+              publishedAt: { lte: new Date() },
+              searchText: { contains: query.toLowerCase() },
+            },
+          }),
+        posts.length,
+      )
+    : await safeQuery(
+        "blogCount",
+        () =>
+          prisma.post.count({
+            where: {
+              status: "PUBLISHED",
+              publishedAt: { lte: new Date() },
+              ...(category ? { category: { slug: category } } : {}),
+              ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
+            },
+          }),
+        posts.length,
+      );
 
   const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
   const [categories, tags] = await Promise.all([getCategories(), getPopularTags(14)]);

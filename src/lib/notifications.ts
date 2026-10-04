@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { getSiteSettings } from "./settings";
+import { safeQuery } from "./db-fallback";
 import { formatPhone, maskEmail } from "./crypto";
 import {
   bookingNotificationHtml,
@@ -143,27 +144,32 @@ export async function notifyNewMessage(data: {
 
 /**
  * Publishes SCHEDULED posts whose time has arrived.
- * Call it from a cron route (`/api/cron/publish`) and opportunistically from
- * the blog index.
+ *
+ * Called from a cron route (`/api/cron/publish`), from the blog index, and from
+ * the admin dashboard. It is a convenience pass, never a requirement: if the
+ * database is unreachable the call is a no-op rather than an error, because the
+ * blog index publishes overdue posts on every render anyway.
  */
 export async function publishDuePosts(): Promise<number> {
-  const now = new Date();
-  const due = await prisma.post.findMany({
-    where: { status: "SCHEDULED", scheduledAt: { lte: now } },
-    select: { id: true, title: true },
-  });
+  return safeQuery("publishDuePosts", async () => {
+    const now = new Date();
+    const due = await prisma.post.findMany({
+      where: { status: "SCHEDULED", scheduledAt: { lte: now } },
+      select: { id: true, title: true },
+    });
 
-  for (const post of due) {
-    await prisma.post.update({
-      where: { id: post.id },
-      data: { status: "PUBLISHED", publishedAt: now, scheduledAt: null },
-    });
-    await logActivity({
-      action: "PUBLISH",
-      entity: "Post",
-      entityId: post.id,
-      summary: `نشر مجدول تلقائيًا: ${post.title}`,
-    });
-  }
-  return due.length;
+    for (const post of due) {
+      await prisma.post.update({
+        where: { id: post.id },
+        data: { status: "PUBLISHED", publishedAt: now, scheduledAt: null },
+      });
+      await logActivity({
+        action: "PUBLISH",
+        entity: "Post",
+        entityId: post.id,
+        summary: `نشر مجدول تلقائيًا: ${post.title}`,
+      });
+    }
+    return due.length;
+  }, 0);
 }
