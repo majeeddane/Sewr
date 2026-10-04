@@ -55,6 +55,7 @@ const ALLOWED = new Set([
   "Point-in-Time", "Recovery", "Encrypt", "CHANGE_ME", "Strict-Transport",
   "robots", "admin", "api", "string",
   "Node.js", "Next.js", "Let's", "Encrypt",
+  "Hobby", "Pro", "Team", "Enterprise",
 ]);
 
 const CJK = new RegExp(
