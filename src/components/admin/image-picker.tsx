@@ -78,6 +78,9 @@ export function ImagePicker({
         className={cn(
           "relative overflow-hidden rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 transition-colors dark:border-white/15 dark:bg-white/5",
           aspect,
+          // The dropzone is a control, not a preview. Without a cap, a 16:9
+          // ratio inside a third of the viewport fills the whole screen.
+          "max-h-40",
         )}
       >
         {value ? (
@@ -86,7 +89,7 @@ export function ImagePicker({
               src={value}
               alt=""
               fill
-              sizes="(min-width: 768px) 40vw, 100vw"
+              sizes="(min-width: 768px) 30vw, 100vw"
               className="object-cover"
               unoptimized={value.startsWith("http")}
             />
@@ -234,12 +237,12 @@ export function ImageTile({
         className="block w-full"
         aria-pressed={active}
       >
-        <span className="relative block aspect-[4/3] w-full">
+        <span className="relative block aspect-[4/3] w-full max-h-28 overflow-hidden rounded-lg">
           <Image
             src={src}
             alt={alt ?? ""}
             fill
-            sizes="200px"
+            sizes="180px"
             className="object-cover"
             unoptimized={src.startsWith("http")}
           />

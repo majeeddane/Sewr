@@ -58,8 +58,11 @@ function Preview({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-sand-100 ring-1 ring-inset ring-sand-300 dark:bg-white/5 dark:ring-white/10",
+        "relative overflow-hidden rounded-xl bg-sand-100 ring-1 ring-inset ring-sand-300 dark:bg-white/5 dark:ring-white/10",
         aspect,
+        // Thumbnails only: the real images render on the public site, so a
+        // full-height preview here just makes the page scroll for no reason.
+        "max-h-28",
       )}
     >
       {src ? (
@@ -68,7 +71,7 @@ function Preview({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={alt} className="size-full object-cover" />
       ) : (
-        <span className="absolute inset-0 grid place-items-center px-3 text-center text-xs font-semibold text-ink-400">
+        <span className="absolute inset-0 grid place-items-center px-3 text-center text-[0.6875rem] font-semibold text-ink-400">
           {placeholder}
         </span>
       )}

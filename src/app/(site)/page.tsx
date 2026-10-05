@@ -185,7 +185,7 @@ export default async function HomePage() {
       <Methodology
         title={settings.homeProgramsTitle ?? "منهجية التعافي"}
         text={settings.homeProgramsText ?? ""}
-        image="/placeholders/vision2030.svg"
+        image={settings.aboutVision2030Image ?? "/placeholders/vision2030.svg"}
           imageHidden={settings.aboutVision2030ImageHidden}
         steps={steps.map((s) => ({
           id: s.id,

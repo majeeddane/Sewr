@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { PageHero } from "@/components/site/common";
 import { Reveal } from "@/components/ui/reveal";
 import {
@@ -144,17 +145,29 @@ export default async function AboutPage() {
                   </p>
                 </div>
                 <div className="relative min-h-[16rem] bg-brand-50 lg:min-h-full">
-                  <div className="absolute inset-0 bg-dots opacity-40" />
-                  <div className="absolute inset-0 grid place-items-center p-10">
-                    <span className="text-center">
-                      <span className="block text-5xl font-extrabold text-brand-700">
-                        ٢٠٣٠
-                      </span>
-                      <span className="mt-2 block text-sm font-bold text-ink-500">
-                        رؤية وطنية نتشارك في تحقيقها
-                      </span>
-                    </span>
-                  </div>
+                  {settings.aboutVision2030Image && !settings.aboutVision2030ImageHidden ? (
+                    <Image
+                      src={settings.aboutVision2030Image}
+                      alt={settings.aboutVision2030ImageAlt ?? ""}
+                      fill
+                      sizes="(min-width: 1024px) 50vw, 100vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-dots opacity-40" />
+                      <div className="absolute inset-0 grid place-items-center p-10">
+                        <span className="text-center">
+                          <span className="block text-5xl font-extrabold text-brand-700">
+                            ٢٠٣٠
+                          </span>
+                          <span className="mt-2 block text-sm font-bold text-ink-500">
+                            رؤية وطنية نتشارك في تحقيقها
+                          </span>
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </Reveal>
