@@ -44,6 +44,9 @@ npm run dev
 | `npm run db:inspect` | فحص قاعدة الإنتاج المتصلة بـ `DATABASE_URL` (قراءة فقط) |
 | `npm run db:apply` | تطبيق المخطط والبيانات على قاعدة PostgreSQL |
 | `npm run verify:production-db` | ١٩ فحصًا على قاعدة الإنتاج: المحتوى، التشفير، RLS، المفاتيح |
+| `npm run check:live` | يتأكد أن المحتوى العربي ظاهر في HTML المنشور لا مجرد 200 |
+| `npm run stress:live` | ضغط متوازٍ على الموقع الحيّ لكشف نفاد الاتصالات |
+| `npm run find:pooler` | اكتشاف منطقة وسيط اتصال Supabase الصحيحة |
 | `npm run seed:sql` | إعادة توليد `supabase/seed.sql` من قاعدة التطوير |
 
 ---
@@ -104,6 +107,10 @@ sewr-waie/
 │   ├── verify-secrets.ts          # كشف تسرّب الأسرار إلى المستودع
 │   ├── verify-production-db.ts    # فحص قاعدة الإنتاج عبر DATABASE_URL
 │   ├── inspect-db.ts              # عرض/تطبيق مخطط قاعدة الإنتاج
+│   ├── check-content.ts           # يعرض أي حقول المحتوى ممتلئة وأيها فارغة
+│   ├── check-live.ts              # يتأكد أن المحتوى ظاهر في HTML المنشور
+│   ├── stress-live.ts             # ضغط متوازٍ يكشف نفاد الاتصالات
+│   ├── find-pooler.ts             # اكتشاف منطقة وسيط اتصال Supabase
 │   ├── generate-seed-sql.ts       # توليد supabase/seed.sql من قاعدة التطوير
 │   └── generate-baseline-migration.ts  # توليد ترحيل PostgreSQL الأساسي
 └── src/

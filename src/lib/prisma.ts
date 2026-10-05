@@ -21,18 +21,23 @@ import { PrismaClient } from "@prisma/client";
  * page looked healthy, which is a miserable thing to debug.
  *
  * The fix is the *transaction* pooler, which multiplexes many client
- * connections over a few real ones. It requires two settings:
+ * connections over a few real ones. It requires these URL parameters:
  *
  *   ?pgbouncer=true        tell Prisma the server speaks the pgbouncer
  *                          protocol, so it does not try to use session-scoped
  *                          features (LISTEN/NOTIFY, advisory locks, temp
  *                          tables) that the pooler cannot support
- *   &connection_limit=1    never hold more than one real connection open
+ *   &connection_limit=8    per-function cap. Not 1: the build prerenders with
+ *                          19 parallel workers, and a limit of 1 made them
+ *                          queue behind each other until the 10s pool timeout
+ *                          killed the build.
+ *   &pool_timeout=60       19 workers sharing 8 slots still queue briefly, so
+ *                          the default 10s is not enough headroom.
  *
  * Transactions must therefore be explicit and short. Every call site in this
- * codebase already runs a single short query or an interactive transaction, so
- * no code change is required — but if you ever add a long-running transaction
- * here, it will hold the single connection and serialise every other request.
+ * codebase already runs a single short query or an interactive transaction.
+ * Avoid long-running transactions here: they hold a slot for their duration
+ * and serialise every other request behind them.
  */
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

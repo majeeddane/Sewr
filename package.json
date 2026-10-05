@@ -33,6 +33,7 @@
     "db:apply": "tsx scripts/inspect-db.ts --apply-schema && tsx scripts/inspect-db.ts --apply-seed",
     "verify:production-db": "tsx scripts/verify-production-db.ts",
     "check:live": "tsx scripts/check-live.ts",
+    "stress:live": "tsx scripts/stress-live.ts",
     "find:pooler": "tsx scripts/find-pooler.ts",
     "db:content": "tsx scripts/check-content.ts",
     "test:db-guard": "tsx scripts/test-db-guard.ts",
