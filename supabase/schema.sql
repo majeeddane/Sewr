@@ -399,6 +399,7 @@ create table site_settings (
   "logoPath"           text,
   "logoAlt"            text,
   "faviconPath"        text,
+  "logoIncludesName"   boolean not null default false,
   "blockAdminIndex"    boolean not null default true,
 
   phone                text,

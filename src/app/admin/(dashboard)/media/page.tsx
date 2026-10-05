@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { can } from "@/lib/rbac";
-import { ALLOWED_MIME, MAX_UPLOAD_BYTES } from "@/lib/storage";
+import { ALLOWED_MIME, MAX_UPLOAD_BYTES, localDiskWritable } from "@/lib/storage";
 import { AdminPageHeader } from "@/components/admin/shell";
 import {
   MediaGrid,
@@ -60,6 +60,11 @@ export default async function MediaPage({
   const context = await getAuthContext();
   const user = context.user;
   if (!user) redirect("/admin/login");
+
+  // The local driver cannot work on a read-only filesystem, so tell the
+  // operator before they pick a file rather than after the upload fails.
+  const storageDriver = (process.env.STORAGE_DRIVER || "local").toLowerCase();
+  const uploadsPossible = storageDriver === "supabase" || localDiskWritable();
   if (!can(user.role, "media.view")) redirect("/admin");
 
   const params = await searchParams;
@@ -120,6 +125,35 @@ export default async function MediaPage({
         description="الصور والملفات المستخدمة في الموقع. اضغط «نسخ المسار» ثم الصقه في أي حقل صورة."
         breadcrumb={[{ href: "/admin", label: "لوحة التحكم" }]}
       />
+
+      {!uploadsPossible ? (
+        <div
+          role="status"
+          className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          <h2 className="mb-2 font-bold">رفع الصور معطّل على هذه المنصة</h2>
+          <p className="text-sm leading-7">
+            نظام الملفات للقراءة فقط هنا، فلا يمكن حفظ الصور المرفوعة، وستظهر رسالة
+            تقنية عند المحاولة. لتفعيل الرفع أضف المتغيرات الثلاثة التالية ثم أعد
+            النشر:
+          </p>
+          <ul className="mt-3 space-y-1 text-sm" dir="ltr">
+            <li>
+              <code>STORAGE_DRIVER=supabase</code>
+            </li>
+            <li>
+              <code>SUPABASE_URL=https://ygljghnwcexqpeusdvwb.supabase.co</code>
+            </li>
+            <li>
+              <code>SUPABASE_SERVICE_ROLE_KEY=…</code>
+            </li>
+          </ul>
+          <p className="mt-3 text-sm">
+            مفتاح الخدمة من: Supabase ← Project Settings ← API ← Service Role.
+            والخطوات كاملة في <code>docs/DEPLOYMENT.md</code>.
+          </p>
+        </div>
+      ) : null}
 
       <MediaGrid
         assets={rows.map((row) => ({

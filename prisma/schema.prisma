@@ -478,6 +478,9 @@ model SiteSetting {
   logoPath       String?
   logoAlt        String?
   faviconPath    String?
+  /// True when the uploaded logo already contains the written name, so the
+  /// header renders the image on its own instead of repeating the name.
+  logoIncludesName Boolean @default(false)
   /// Prevents the admin panel from being indexed.
   blockAdminIndex Boolean @default(true)
 

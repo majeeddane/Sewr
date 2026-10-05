@@ -347,6 +347,7 @@ CREATE TABLE "site_settings" (
     "logoPath" TEXT,
     "logoAlt" TEXT,
     "faviconPath" TEXT,
+    "logoIncludesName" BOOLEAN NOT NULL DEFAULT false,
     "blockAdminIndex" BOOLEAN NOT NULL DEFAULT true,
     "phone" TEXT,
     "whatsapp" TEXT,

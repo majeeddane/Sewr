@@ -24,7 +24,13 @@ export default async function SiteLayout({
         تخطَّ إلى المحتوى الرئيسي
       </a>
 
-      <SiteHeader logoPath={settings.logoPath} phone={settings.phone} />
+      <SiteHeader
+        logoPath={settings.logoPath}
+        logoIncludesName={settings.logoIncludesName}
+        siteName={settings.siteName}
+        siteNameEn={settings.siteNameEn}
+        phone={settings.phone}
+      />
 
       <main id="main" className="flex-1">
         {children}

@@ -132,6 +132,9 @@ export function Logo({
   showWordmark = true,
   variant = "light",
   logoPath,
+  siteName,
+  siteNameEn,
+  logoIncludesName = false,
   className,
   markClassName,
 }: {
@@ -141,16 +144,45 @@ export function Logo({
   variant?: "light" | "dark";
   /** Uploaded logo from the dashboard; falls back to the built-in mark. */
   logoPath?: string | null;
+  /** Written name, taken from the database so renaming works without a deploy. */
+  siteName?: string | null;
+  siteNameEn?: string | null;
+  /**
+   * Set when the uploaded file is a full lockup (mark + written name). The
+   * image is then shown on its own, larger, because repeating the name beside
+   * it would duplicate it.
+   */
+  logoIncludesName?: boolean;
   className?: string;
   markClassName?: string;
 }) {
+  const arabicName = siteName?.trim() || "سوار وعي";
+  const latinName = siteNameEn?.trim() || "Sewr Waie";
+
+  // A lockup image carries its own name, so it gets the full header height
+  // and no separate wordmark.
+  if (logoPath && logoIncludesName) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoPath}
+        alt={arabicName}
+        className={cn(
+          "max-h-12 w-auto object-contain",
+          variant === "dark" ? "brightness-0 invert" : "",
+          className,
+        )}
+      />
+    );
+  }
+
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
       {logoPath ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoPath}
-          alt="سوار وعي"
+          alt={arabicName}
           width={size}
           height={size}
           className={cn("shrink-0 object-contain", markClassName)}
@@ -177,7 +209,7 @@ export function Logo({
               color: "transparent",
             }}
           >
-            سوار وعي
+            {arabicName}
           </span>
           <span
             dir="ltr"
@@ -186,7 +218,7 @@ export function Logo({
               variant === "dark" ? "text-brand-200" : "text-ink-500",
             )}
           >
-            Sewr Waie
+            {latinName}
           </span>
         </span>
       )}

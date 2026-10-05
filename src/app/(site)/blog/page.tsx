@@ -4,7 +4,6 @@ import { PageHero } from "@/components/site/common";
 import { Pagination } from "@/components/admin/widgets";
 import { Reveal } from "@/components/ui/reveal";
 import { EmptyState } from "@/components/site/common";
-import { publishDuePosts } from "@/lib/notifications";
 import { getCategories, getPopularTags, getPublishedPosts, toPublicPost } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/db-fallback";
@@ -34,8 +33,11 @@ export default async function BlogPage({
 }: {
   searchParams: Promise<{ page?: string; category?: string; tag?: string; q?: string }>;
 }) {
-  // Any scheduled article whose time has come goes live now.
-  await publishDuePosts();
+  // Scheduled articles are published by the daily cron at /api/cron/publish,
+  // not here. Writing on every page view made /blog the slowest route by an
+  // order of magnitude: the page is dynamic (it reads searchParams), so every
+  // request reached the database and took a write lock before it could render.
+  // For an article that must go live sooner, the dashboard has "publish now".
 
   const params = await searchParams;
   const page = Math.max(1, Number(params.page ?? 1) || 1);
@@ -43,67 +45,71 @@ export default async function BlogPage({
   const tag = params.tag;
   const query = params.q?.trim();
 
-  // Search needs its own query (searchText is a plain column), while
-  // category/tag filtering is handled by the cached helper.
-  let posts;
-  if (query) {
-    const rows = await safeQuery(
-      "blogSearch",
-      () =>
-        prisma.post.findMany({
-          where: {
-            status: "PUBLISHED",
-            publishedAt: { lte: new Date() },
-            searchText: { contains: query.toLowerCase() },
-          },
-          include: {
-            category: true,
-            author: { select: { id: true, name: true, avatarUrl: true } },
-            tags: { include: { tag: true } },
-          },
-          orderBy: { publishedAt: "desc" },
-          skip: (page - 1) * PER_PAGE,
-          take: PER_PAGE,
+  // These four queries are independent. Awaiting them one after another cost
+  // three sequential round trips to the database pooler, which from a distant
+  // region added well over a second to every visit. Promise.all collapses
+  // that into one.
+  const [posts, total, categories, tags] = await Promise.all([
+    // Search needs its own query because searchText is a plain column.
+    query
+      ? safeQuery(
+          "blogSearch",
+          () =>
+            prisma.post.findMany({
+              where: {
+                status: "PUBLISHED",
+                publishedAt: { lte: new Date() },
+                searchText: { contains: query.toLowerCase() },
+              },
+              include: {
+                category: true,
+                author: { select: { id: true, name: true, avatarUrl: true } },
+                tags: { include: { tag: true } },
+              },
+              orderBy: { publishedAt: "desc" },
+              skip: (page - 1) * PER_PAGE,
+              take: PER_PAGE,
+            }),
+          [],
+        ).then((rows) => rows.map(toPublicPost))
+      : getPublishedPosts({
+          limit: PER_PAGE,
+          categorySlug: category,
+          tagSlug: tag,
         }),
-    []);
-    posts = rows.map(toPublicPost);
-  } else {
-    posts = await getPublishedPosts({
-      limit: PER_PAGE,
-      categorySlug: category,
-      tagSlug: tag,
-    });
-  }
 
-  const total = query
-    ? await safeQuery(
-        "blogSearchCount",
-        () =>
-          prisma.post.count({
-            where: {
-              status: "PUBLISHED",
-              publishedAt: { lte: new Date() },
-              searchText: { contains: query.toLowerCase() },
-            },
-          }),
-        posts.length,
-      )
-    : await safeQuery(
-        "blogCount",
-        () =>
-          prisma.post.count({
-            where: {
-              status: "PUBLISHED",
-              publishedAt: { lte: new Date() },
-              ...(category ? { category: { slug: category } } : {}),
-              ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
-            },
-          }),
-        posts.length,
-      );
+    query
+      ? safeQuery(
+          "blogSearchCount",
+          () =>
+            prisma.post.count({
+              where: {
+                status: "PUBLISHED",
+                publishedAt: { lte: new Date() },
+                searchText: { contains: query.toLowerCase() },
+              },
+            }),
+          0,
+        )
+      : safeQuery(
+          "blogCount",
+          () =>
+            prisma.post.count({
+              where: {
+                status: "PUBLISHED",
+                publishedAt: { lte: new Date() },
+                ...(category ? { category: { slug: category } } : {}),
+                ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
+              },
+            }),
+          0,
+        ),
+
+    getCategories(),
+    getPopularTags(14),
+  ]);
 
   const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
-  const [categories, tags] = await Promise.all([getCategories(), getPopularTags(14)]);
 
   const buildHref = (nextPage: number) => {
     const qs = new URLSearchParams();

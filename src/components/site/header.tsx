@@ -32,9 +32,15 @@ export const NAV_ITEMS: NavItem[] = [
  */
 export function SiteHeader({
   logoPath,
+  logoIncludesName,
+  siteName,
+  siteNameEn,
   phone,
 }: {
   logoPath?: string | null;
+  logoIncludesName?: boolean;
+  siteName?: string | null;
+  siteNameEn?: string | null;
   phone?: string | null;
 }) {
   const pathname = usePathname();
@@ -99,7 +105,13 @@ export function SiteHeader({
             className="flex items-center gap-2 rounded-xl py-1 transition-opacity hover:opacity-85"
             aria-label="سوار وعي — الصفحة الرئيسية"
           >
-            <Logo logoPath={logoPath} size={40} />
+            <Logo
+        logoPath={logoPath}
+        logoIncludesName={logoIncludesName}
+        siteName={siteName}
+        siteNameEn={siteNameEn}
+        size={40}
+      />
           </Link>
 
           {/* Desktop navigation */}

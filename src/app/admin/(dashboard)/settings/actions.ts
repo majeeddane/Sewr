@@ -114,7 +114,7 @@ const IMAGE_FIELDS: Record<SettingsTabKey, readonly string[]> = {
 
 /** Checkbox columns: present = on, absent = off. */
 const BOOL_FIELDS: Record<SettingsTabKey, readonly string[]> = {
-  identity: ["blockAdminIndex"],
+  identity: ["blockAdminIndex", "logoIncludesName"],
   contact: [],
   hours: [],
   social: [],

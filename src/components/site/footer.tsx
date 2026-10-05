@@ -57,7 +57,14 @@ export async function SiteFooter() {
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-8">
           {/* ── Brand ─────────────────────────────────── */}
           <div className="lg:col-span-4">
-            <Logo variant="dark" logoPath={settings.logoPath} size={48} />
+            <Logo
+        variant="dark"
+        logoPath={settings.logoPath}
+        logoIncludesName={settings.logoIncludesName}
+        siteName={settings.siteName}
+        siteNameEn={settings.siteNameEn}
+        size={48}
+      />
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-[1.95] text-brand-200/90">
               مركز متخصص في الإحاطة بعلوم التعافي، يجمع بين الرعاية النفسية
               والعلمية والإرشاد الأسري، ليقدّم رعاية تحفظ كرامة كل من يطلب

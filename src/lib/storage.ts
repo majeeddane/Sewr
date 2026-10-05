@@ -87,6 +87,31 @@ export async function saveUpload(
   return saveToDisk(buffer, name, file.type, folder, relativeFolder);
 }
 
+/**
+ * Whether the local disk driver can work at all.
+ *
+ * On Vercel the project directory is a read-only image, so writing to
+ * public/uploads fails with a bare `ENOENT: ... mkdir '/var/task/public/uploads'`
+ * that tells the operator nothing. Detecting it up front lets us explain the
+ * actual fix instead of surfacing a Node error in the dashboard.
+ *
+ * Vercel exposes exactly one writable directory, /tmp, and it is wiped between
+ * invocations — so it cannot be used for uploads the site must keep serving.
+ */
+export function localDiskWritable(): boolean {
+  // Serverless platforms that ship a read-only project tree.
+  if (process.env.VERCEL) return false;
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) return false;
+  return true;
+}
+
+/** Arabic explanation for the operator, shown in the dashboard. */
+export const READ_ONLY_FS_MESSAGE =
+  "نظام الملفات للقراءة فقط على منصة النشر، ولا يمكن حفظ الصور عليه. " +
+  "لتفعيل رفع الصور: اضبط STORAGE_DRIVER=supabase مع SUPABASE_URL و" +
+  "SUPABASE_SERVICE_ROLE_KEY في متغيرات البيئة. " +
+  "الخطوات كاملة في docs/DEPLOYMENT.md.";
+
 async function saveToDisk(
   buffer: Buffer,
   name: string,
@@ -94,9 +119,20 @@ async function saveToDisk(
   folder: string,
   relativeFolder: string,
 ): Promise<StoredFile> {
+  if (!localDiskWritable()) throw new Error(READ_ONLY_FS_MESSAGE);
+
   const dir = path.join(process.cwd(), "public", "uploads", relativeFolder);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), buffer);
+  try {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, name), buffer);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "EROFS" || code === "EACCES" || code === "ENOSPC") {
+      throw new Error(READ_ONLY_FS_MESSAGE);
+    }
+    throw error;
+  }
+
   return {
     path: `/uploads/${relativeFolder}/${name}`,
     filename: safeName(name),

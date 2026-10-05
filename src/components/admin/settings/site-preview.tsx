@@ -14,6 +14,7 @@ export function SitePreviewStrip({
   siteNameEn,
   tagline,
   logoPath,
+  logoIncludesName,
   phone,
   primaryColor,
   accentColor,
@@ -22,6 +23,7 @@ export function SitePreviewStrip({
   siteNameEn: string;
   tagline: string;
   logoPath: string | null;
+  logoIncludesName: boolean;
   phone: string | null;
   primaryColor: string;
   accentColor: string;
@@ -52,7 +54,7 @@ export function SitePreviewStrip({
       {/* Header row */}
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <Logo logoPath={logoPath} size={40} />
+          <Logo logoPath={logoPath} logoIncludesName={logoIncludesName} size={40} />
           <span className="flex flex-col">
             <span className="text-base font-extrabold text-brand-900 dark:text-white">
               {siteName}

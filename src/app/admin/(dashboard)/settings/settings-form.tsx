@@ -50,6 +50,7 @@ export interface SettingsFormProps {
     logoPath: string | null;
     logoAlt: string | null;
     faviconPath: string | null;
+  logoIncludesName: boolean;
     blockAdminIndex: boolean;
     // ── Contact
     phone: string | null;
@@ -322,6 +323,15 @@ export function SettingsForm({ canEdit, settings }: SettingsFormProps) {
               hint="مربّعة 512×512 بكسل."
             />
           </Grid>
+
+          <Checkbox
+            id="logoIncludesName"
+            name="logoIncludesName"
+            defaultChecked={settings.logoIncludesName}
+            disabled={!canEdit}
+            label="الشعار يتضمّن اسم المركز"
+            description="فعّل هذا الخيار إذا كانت الصورة المرفوعة تحتوي الاسم مكتوبًا داخلها. عندها تُعرض الصورة وحدها بحجم كبير في الرأس والفوتر، ولا يتكرر الاسم بجانبها."
+          />
           <TextField
             name="logoAlt"
             label="النص البديل للشعار"

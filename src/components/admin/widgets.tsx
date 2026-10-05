@@ -3,6 +3,24 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 
+// ── Skeleton ───────────────────────────────────────────────────
+
+/**
+ * Placeholder block used by loading states.
+ *
+ * Dashboard pages are dynamic and each one waits on the database, so without a
+ * skeleton the interface shows nothing at all during the round trip and reads
+ * as frozen rather than loading.
+ */
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn("animate-pulse rounded-lg bg-sand-200 dark:bg-white/8", className)}
+    />
+  );
+}
+
 // ── Stat card ─────────────────────────────────────────────────
 
 export function StatCard({

@@ -49,6 +49,7 @@ export default async function AdminSettingsPage() {
           siteNameEn={s.siteNameEn}
           tagline={s.tagline}
           logoPath={s.logoPath}
+          logoIncludesName={s.logoIncludesName}
           phone={s.phone}
           primaryColor={s.primaryColor}
           accentColor={s.accentColor}
@@ -63,6 +64,7 @@ export default async function AdminSettingsPage() {
             logoPath: s.logoPath,
             logoAlt: s.logoAlt,
             faviconPath: s.faviconPath,
+            logoIncludesName: s.logoIncludesName,
             blockAdminIndex: s.blockAdminIndex,
 
             phone: s.phone,

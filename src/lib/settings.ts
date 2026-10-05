@@ -21,6 +21,7 @@ function emptySettings(): SiteSetting {
     logoPath: null,
     logoAlt: null,
     faviconPath: null,
+    logoIncludesName: false,
     blockAdminIndex: true,
 
     phone: null,
@@ -146,6 +147,7 @@ export interface PublicSettings {
   tagline: string;
   logoPath: string | null;
   logoAlt: string | null;
+  logoIncludesName: boolean;
   phone: string | null;
   whatsapp: string | null;
   whatsappMessage: string | null;
@@ -169,6 +171,7 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     tagline: s.tagline,
     logoPath: s.logoPath,
     logoAlt: s.logoAlt ?? s.siteName,
+    logoIncludesName: s.logoIncludesName,
     phone: s.phone,
     whatsapp: s.whatsapp,
     whatsappMessage: s.whatsappMessage,
