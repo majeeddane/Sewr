@@ -33,6 +33,9 @@ const BUTTON_VARIANTS = {
   ghost: "text-brand-800 hover:bg-brand-50 active:scale-[0.98]",
   soft: "bg-brand-50 text-brand-800 hover:bg-brand-100 active:scale-[0.98]",
   white: "bg-white text-brand-800 shadow-soft hover:bg-sand-50 active:scale-[0.98]",
+  /** For dark backgrounds such as the full-bleed hero. */
+  outlineLight:
+    "border-2 border-white/45 bg-white/10 text-white backdrop-blur-sm hover:border-white/80 hover:bg-white/20 active:scale-[0.98]",
   danger:
     "bg-danger-600 text-white hover:bg-danger-700 active:scale-[0.98]",
   whatsapp:

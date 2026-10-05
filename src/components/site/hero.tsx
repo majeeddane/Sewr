@@ -8,11 +8,22 @@ export interface TrustItem {
   description: string | null | undefined;
   icon: string;
 }
+
 /**
- * Hero + floating trust bar.
+ * Hero with a full-bleed background photograph, plus the floating trust bar.
  *
- * Layout follows the mockup: text on the start (right) edge, photography on
- * the end (left) edge, and the trust bar as a white card that overlaps both.
+ * The image spans the entire viewport width and the copy sits on top of it,
+ * instead of the photograph being a card in one column. Two things make that
+ * readable rather than decorative:
+ *
+ *  1. A directional scrim. The site is RTL, so the copy sits on the right; the
+ *     gradient is therefore strongest on the right and fades toward the left,
+ *     so the photo still reads in the space the text does not occupy.
+ *  2. A vertical scrim as well, which keeps the headline legible over bright
+ *     skies and stops the bottom edge from fighting the trust card.
+ *
+ * Both gradients also serve as the fallback background when no photo has been
+ * uploaded, so the section never looks unfinished.
  */
 export function Hero({
   badge,
@@ -30,35 +41,61 @@ export function Hero({
   trustItems: TrustItem[];
 }) {
   return (
-    <section className="relative overflow-hidden bg-sand-100">
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-grid-soft opacity-60"
-      />
-      <div
-        aria-hidden
-        className="absolute -top-24 end-[-10%] size-[36rem] rounded-full bg-brand-100/60 blur-3xl"
-      />
+    <section className="relative">
+      {/* ── Full-bleed background ─────────────────────── */}
+      <div className="relative isolate overflow-hidden bg-brand-950">
+        {image ? (
+          <Image
+            src={image}
+            alt={imageAlt ?? ""}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-br from-brand-800 via-brand-700 to-brand-950"
+          />
+        )}
 
-      <div className="container-page relative pt-10 sm:pt-14 lg:pt-16">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-          {/* ── Copy ─────────────────────────────────── */}
-          <div className="order-2 lg:order-1">
+        {/* Directional scrim — strongest under the RTL copy on the right. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-l from-brand-950/95 via-brand-950/75 to-brand-950/30"
+        />
+        {/* Vertical scrim — keeps the headline legible and softens the base. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-t from-brand-950/70 via-transparent to-brand-950/45"
+        />
+        <div aria-hidden className="absolute inset-0 bg-grid-soft opacity-25" />
+        <div
+          aria-hidden
+          className="absolute -top-32 end-[-15%] size-[34rem] rounded-full bg-brand-500/25 blur-3xl"
+        />
+
+        {/* ── Copy ─────────────────────────────────── */}
+        <div className="container-page relative py-20 sm:py-24 lg:py-32">
+          <div className="max-w-2xl">
             {badge && (
               <Reveal>
-                <span className="eyebrow mb-5">{badge}</span>
+                <span className="eyebrow mb-6 border-white/25 bg-white/10 text-gold-200 backdrop-blur-sm">
+                  {badge}
+                </span>
               </Reveal>
             )}
 
             <Reveal delay={80}>
-              <h1 className="text-[2.1rem] leading-[1.28] text-brand-900 sm:text-5xl sm:leading-[1.22] lg:text-[3.4rem] lg:leading-[1.18]">
+              <h1 className="text-[2.15rem] font-extrabold leading-[1.28] text-white drop-shadow-sm sm:text-5xl sm:leading-[1.22] lg:text-[3.5rem] lg:leading-[1.18]">
                 {title}
               </h1>
             </Reveal>
 
             {description && (
               <Reveal delay={160}>
-                <p className="mt-6 max-w-xl text-[1.0625rem] leading-[2.05] text-ink-600 sm:text-lg">
+                <p className="mt-6 max-w-xl text-[1.0625rem] leading-[2.05] text-sand-100/95 sm:text-lg">
                   {description}
                 </p>
               </Reveal>
@@ -77,7 +114,7 @@ export function Hero({
                 </ButtonLink>
                 <ButtonLink
                   href="/contact"
-                  variant="primary"
+                  variant="outlineLight"
                   size="lg"
                   icon="MessageCircle"
                 >
@@ -87,48 +124,20 @@ export function Hero({
             </Reveal>
 
             <Reveal delay={320}>
-              <p className="mt-6 flex items-center gap-2 text-[0.8125rem] text-ink-500">
+              <p className="mt-7 flex items-center gap-2 text-[0.8125rem] text-sand-200/80">
                 <span aria-hidden>🔒</span>
                 طلبك يبقى سرّيًا ولا يُشارك مع أي جهة دون إذنك.
               </p>
             </Reveal>
           </div>
-
-          {/* ── Image ────────────────────────────────── */}
-          <div className="order-1 lg:order-2">
-            <Reveal delay={120}>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] shadow-lift ring-1 ring-brand-900/5 sm:aspect-[16/11] lg:aspect-[4/3]">
-                {image ? (
-                  <Image
-                    src={image}
-                    alt={imageAlt ?? ""}
-                    fill
-                    priority
-                    sizes="(min-width: 1024px) 46vw, 100vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-800 via-brand-700 to-brand-950" />
-                )}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-t from-brand-950/45 via-transparent to-transparent"
-                />
-                <div
-                  aria-hidden
-                  className="absolute -bottom-6 -start-6 size-32 rounded-full bg-gold-400/25 blur-2xl"
-                />
-              </div>
-            </Reveal>
-          </div>
         </div>
       </div>
 
-      {/* ── Trust bar ────────────────────────────────── */}
+      {/* ── Trust bar, overlapping the photo ──────────── */}
       {trustItems.length > 0 && (
-        <div className="container-page relative z-10">
+        <div className="container-page relative z-10 -mt-12 sm:-mt-14">
           <Reveal delay={120}>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-6 rounded-3xl border border-sand-200 bg-white/92 px-5 py-7 shadow-lift backdrop-blur-md sm:grid-cols-3 sm:px-8 lg:grid-cols-6 lg:py-8">
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-6 rounded-3xl border border-sand-200 bg-white/95 px-5 py-7 shadow-lift backdrop-blur-md sm:grid-cols-3 sm:px-8 lg:grid-cols-6 lg:py-8">
               {trustItems.map((item, index) => {
                 const Icon = getIcon(item.icon);
                 return (
@@ -157,7 +166,7 @@ export function Hero({
 
       {/* Spacer so the overlapping trust bar does not collide with the next
           section on small screens. */}
-      <div aria-hidden className="h-10 sm:h-14" />
+      <div aria-hidden className="h-12 bg-sand-50 sm:h-16" />
     </section>
   );
 }
