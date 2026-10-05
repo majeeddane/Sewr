@@ -161,6 +161,11 @@ async function saveToSupabase(
     {
       method: "POST",
       headers: {
+        // Both headers are required. `Authorization` proves the caller is the
+        // service role; `apikey` tells the Storage API which project the
+        // request is for. Sending only the Authorization header fails with a
+        // bare 400 that carries no explanation.
+        apikey: key,
         Authorization: `Bearer ${key}`,
         "Content-Type": mimeType,
         "x-upsert": "true",
@@ -181,33 +186,56 @@ async function saveToSupabase(
   };
 }
 
+/**
+ * Extracts the object path from a stored file reference.
+ *
+ * Two shapes exist and both must be understood:
+ *
+ *   local     /uploads/2026/10/branding/logo.png
+ *   supabase  https://<project>.supabase.co/storage/v1/object/public/media/2026/10/branding/logo.png
+ *
+ * The Supabase driver stores a full URL, not a site-relative path, so anything
+ * that only looks for "/uploads/" silently fails to match and the file can
+ * never be deleted.
+ */
+function objectKeyFrom(publicPath: string): { kind: "supabase" | "local"; key: string } | null {
+  const marker = "/storage/v1/object/public/";
+  const at = publicPath.indexOf(marker);
+  if (at !== -1) {
+    const rest = publicPath.slice(at + marker.length);
+    const slash = rest.indexOf("/");
+    if (slash === -1) return null;
+    return { kind: "supabase", key: rest.slice(slash + 1) };
+  }
+  if (publicPath.startsWith("/uploads/")) {
+    return { kind: "local", key: publicPath.slice("/uploads/".length) };
+  }
+  return null;
+}
+
 /** Removes a stored file. Never throws — deletion failures are logged only. */
 export async function deleteUpload(publicPath: string): Promise<boolean> {
   try {
-    if (publicPath.startsWith("/uploads/")) {
-      if (driver() === "supabase") {
-        const url = process.env.SUPABASE_URL;
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        const bucket = process.env.SUPABASE_STORAGE_BUCKET || "media";
-        if (!url || !key) return false;
-        const objectPath = publicPath
-          .replace("/uploads/", "")
-          .split("/")
-          .slice(1)
-          .join("/");
-        const res = await fetch(
-          `${url}/storage/v1/object/${bucket}/${objectPath}`,
-          { method: "DELETE", headers: { Authorization: `Bearer ${key}` } },
-        );
-        return res.ok;
-      }
-      const rel = publicPath.replace(/^\/+/, "");
-      // Refuse anything that escapes the uploads folder.
-      if (rel.includes("..")) return false;
-      await unlink(path.join(process.cwd(), "public", rel));
-      return true;
+    const target = objectKeyFrom(publicPath);
+    if (!target) return false;
+
+    if (target.kind === "supabase") {
+      const url = process.env.SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const bucket = process.env.SUPABASE_STORAGE_BUCKET || "media";
+      if (!url || !key) return false;
+
+      const res = await fetch(`${url}/storage/v1/object/${bucket}/${target.key}`, {
+        method: "DELETE",
+        // apikey is required here too; without it the API answers 400.
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+      });
+      return res.ok;
     }
-    return false;
+
+    if (target.key.includes("..")) return false;
+    await unlink(path.join(process.cwd(), "public", "uploads", target.key));
+    return true;
   } catch (error) {
     console.error("[storage] تعذّر حذف الملف:", error);
     return false;
