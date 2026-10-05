@@ -10,6 +10,11 @@
  * Usage:  npx tsx scripts/smoke-test.ts [baseUrl]
  */
 
+// Every script under scripts/ is compiled in one shared TypeScript scope.
+// This marker keeps this file's declarations out of the global scope, so the
+// same names can be reused by other scripts without colliding.
+export {};
+
 const BASE = process.argv[2] || "http://localhost:3000";
 
 let passed = 0;
