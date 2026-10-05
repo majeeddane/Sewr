@@ -31,6 +31,7 @@ export function Hero({
   description,
   image,
   imageAlt,
+  imageHidden = false,
   trustItems,
 }: {
   badge?: string | null;
@@ -38,13 +39,19 @@ export function Hero({
   description?: string | null;
   image?: string | null;
   imageAlt?: string | null;
+  /**
+   * Switched off in the dashboard. The photograph is then removed entirely
+   * rather than falling back to the gradient, which the section uses as its
+   * own background colour.
+   */
+  imageHidden?: boolean;
   trustItems: TrustItem[];
 }) {
   return (
     <section className="relative">
       {/* ── Full-bleed background ─────────────────────── */}
       <div className="relative isolate overflow-hidden bg-brand-950">
-        {image ? (
+        {image && !imageHidden ? (
           <Image
             src={image}
             alt={imageAlt ?? ""}

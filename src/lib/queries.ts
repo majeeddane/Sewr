@@ -26,6 +26,8 @@ export interface PublicContentItem {
   icon: string | null;
   image: string | null;
   imageAlt: string | null;
+  /** Hidden in the dashboard: rendered as text with no placeholder. */
+  imageHidden: boolean;
   audience: string | null;
   steps: Step[];
   benefits: string[];
@@ -92,6 +94,7 @@ export function toPublicItem(item: RawItem): PublicContentItem {
     icon: item.icon,
     image: item.image,
     imageAlt: item.imageAlt,
+    imageHidden: item.imageHidden,
     audience: item.audience,
     steps: parseJson<Step[]>(item.stepsJson, []),
     benefits: parseJson<string[]>(item.benefitsJson, []),
@@ -189,6 +192,8 @@ export interface PublicPost {
   content: string;
   coverImage: string | null;
   coverImageAlt: string | null;
+  /** Hidden in the dashboard: rendered as text with no placeholder. */
+  coverHidden: boolean;
   category: { id: string; name: string; slug: string } | null;
   tags: Array<{ id: string; name: string; slug: string }>;
   author: { id: string; name: string; avatarUrl: string | null } | null;
@@ -209,6 +214,7 @@ export function toPublicPost(post: RawPost): PublicPost {
     content: post.content,
     coverImage: post.coverImage,
     coverImageAlt: post.coverImageAlt,
+    coverHidden: post.coverHidden,
     category: post.category
       ? {
           id: post.category.id,

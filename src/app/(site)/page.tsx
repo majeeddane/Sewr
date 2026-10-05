@@ -122,6 +122,7 @@ export default async function HomePage() {
         description={settings.heroDescription}
         image={settings.heroImage}
         imageAlt={settings.heroImageAlt}
+          imageHidden={settings.heroImageHidden}
         trustItems={trust.map((t) => ({
           title: t.title,
           description: t.description,
@@ -134,6 +135,7 @@ export default async function HomePage() {
         text={settings.homeAboutText ?? ""}
         image={settings.homeAboutImage}
         imageAlt={settings.homeAboutImageAlt ?? ""}
+          imageHidden={settings.homeAboutImageHidden}
         vision={settings.aboutVisionText}
         mission={settings.aboutMissionText}
         visionTitle={settings.aboutVisionTitle}
@@ -184,6 +186,7 @@ export default async function HomePage() {
         title={settings.homeProgramsTitle ?? "منهجية التعافي"}
         text={settings.homeProgramsText ?? ""}
         image="/placeholders/vision2030.svg"
+          imageHidden={settings.aboutVision2030ImageHidden}
         steps={steps.map((s) => ({
           id: s.id,
           title: s.title,

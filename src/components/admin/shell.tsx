@@ -11,6 +11,7 @@ import {
   FolderTree,
   Newspaper,
   Image as ImageIcon,
+  Images as ImagesIcon,
   Settings,
   ShieldCheck,
   ScrollText,
@@ -49,6 +50,7 @@ const CONTENT: NavEntry[] = [
   { href: "/admin/content", label: "المحتوى", icon: FolderTree, show: true },
   { href: "/admin/posts", label: "المدونة", icon: Newspaper, show: true },
   { href: "/admin/media", label: "مكتبة الوسائط", icon: ImageIcon, show: true },
+    { href: "/admin/images", label: "الصور", icon: ImagesIcon, show: true },
 ];
 
 const SYSTEM: NavEntry[] = [

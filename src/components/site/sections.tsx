@@ -61,24 +61,26 @@ export function BlogCard({
         featured && "sm:flex-row",
       )}
     >
-      <Link
-        href={`/blog/${post.slug}`}
-        className={cn(
-          "relative block overflow-hidden bg-brand-900",
-          featured ? "sm:w-1/2" : "",
-          "aspect-[16/10]",
-        )}
-        tabIndex={-1}
-        aria-hidden
-      >
-        <Image
-          src={post.coverImage || "/placeholders/cover-fallback.svg"}
-          alt=""
-          fill
-          sizes={featured ? "(min-width: 640px) 30vw, 100vw" : "(min-width: 1024px) 30vw, 100vw"}
-          className="object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-      </Link>
+      {(!post.coverHidden || post.coverImage) && (
+        <Link
+          href={`/blog/${post.slug}`}
+          className={cn(
+            "relative block overflow-hidden bg-brand-900",
+            featured ? "sm:w-1/2" : "",
+            "aspect-[16/10]",
+          )}
+          tabIndex={-1}
+          aria-hidden
+        >
+          <Image
+            src={post.coverImage || "/placeholders/cover-fallback.svg"}
+            alt=""
+            fill
+            sizes={featured ? "(min-width: 640px) 30vw, 100vw" : "(min-width: 1024px) 30vw, 100vw"}
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        </Link>
+      )}
 
       <div className={cn("flex flex-1 flex-col p-6", featured && "sm:w-1/2 sm:justify-center sm:p-8")}>
         <div className="flex flex-wrap items-center gap-2">
@@ -135,6 +137,7 @@ export function AboutTeaser({
   text,
   image,
   imageAlt,
+  imageHidden = false,
   vision,
   mission,
   visionTitle,
@@ -146,6 +149,8 @@ export function AboutTeaser({
   text: string;
   image?: string | null;
   imageAlt?: string;
+  /** Set from the dashboard to remove the image and its placeholder. */
+  imageHidden?: boolean;
   vision?: string | null;
   mission?: string | null;
   visionTitle?: string | null;
@@ -204,18 +209,20 @@ export function AboutTeaser({
             </Reveal>
           </div>
 
-          {/* Image (end = left) */}
-          <Reveal delay={140}>
-            <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] shadow-lift ring-1 ring-brand-900/5">
-              <Image
-                src={image || "/placeholders/about-center.svg"}
-                alt={imageAlt ?? ""}
-                fill
-                sizes="(min-width: 1024px) 46vw, 100vw"
-                className="object-cover"
-              />
-            </div>
-          </Reveal>
+          {/* Image (end = left) — omitted entirely when hidden in the dashboard */}
+          {!imageHidden && (
+            <Reveal delay={140}>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] shadow-lift ring-1 ring-brand-900/5">
+                <Image
+                  src={image || "/placeholders/about-center.svg"}
+                  alt={imageAlt ?? ""}
+                  fill
+                  sizes="(min-width: 1024px) 46vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
+            </Reveal>
+          )}
         </div>
       </div>
     </section>
@@ -228,11 +235,14 @@ export function Methodology({
   text,
   steps,
   image,
+  imageHidden = false,
 }: {
   title: string;
   text: string;
   steps: Array<{ id: string; title: string; description: string; icon: string }>;
   image?: string | null;
+  /** Set from the dashboard to remove the illustration. */
+  imageHidden?: boolean;
 }) {
   return (
     <section className="relative overflow-hidden bg-brand-950 py-20 text-white sm:py-24">
@@ -244,17 +254,19 @@ export function Methodology({
 
       <div className="container-page relative">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <Reveal>
-            <div className="relative hidden aspect-square lg:block">
-              <Image
-                src={image || "/placeholders/vision2030.svg"}
-                alt=""
-                fill
-                sizes="40vw"
-                className="object-contain opacity-90"
-              />
-            </div>
-          </Reveal>
+          {!imageHidden && (
+            <Reveal>
+              <div className="relative hidden aspect-square lg:block">
+                <Image
+                  src={image || "/placeholders/vision2030.svg"}
+                  alt=""
+                  fill
+                  sizes="40vw"
+                  className="object-contain opacity-90"
+                />
+              </div>
+            </Reveal>
+          )}
 
           <div>
             <Reveal>

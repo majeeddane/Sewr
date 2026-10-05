@@ -22,6 +22,10 @@ function emptySettings(): SiteSetting {
     logoAlt: null,
     faviconPath: null,
     logoIncludesName: false,
+    heroImageHidden: false,
+    homeAboutImageHidden: false,
+    aboutVision2030ImageHidden: false,
+    aboutVision2030ImageAlt: null,
     blockAdminIndex: true,
 
     phone: null,
@@ -148,6 +152,15 @@ export interface PublicSettings {
   logoPath: string | null;
   logoAlt: string | null;
   logoIncludesName: boolean;
+  /** Global image slots, exposed so any page can honour their visibility. */
+  heroImage: string | null;
+  heroImageHidden: boolean;
+  homeAboutImage: string | null;
+  homeAboutImageHidden: boolean;
+  aboutVision2030Image: string | null;
+  aboutVision2030ImageHidden: boolean;
+  faviconPath: string | null;
+  ogImage: string | null;
   phone: string | null;
   whatsapp: string | null;
   whatsappMessage: string | null;
@@ -172,6 +185,14 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     logoPath: s.logoPath,
     logoAlt: s.logoAlt ?? s.siteName,
     logoIncludesName: s.logoIncludesName,
+    heroImage: s.heroImage,
+    heroImageHidden: s.heroImageHidden,
+    homeAboutImage: s.homeAboutImage,
+    homeAboutImageHidden: s.homeAboutImageHidden,
+    aboutVision2030Image: s.aboutVision2030Image,
+    aboutVision2030ImageHidden: s.aboutVision2030ImageHidden,
+    faviconPath: s.faviconPath,
+    ogImage: s.ogImage,
     phone: s.phone,
     whatsapp: s.whatsapp,
     whatsappMessage: s.whatsappMessage,

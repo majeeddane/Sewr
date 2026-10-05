@@ -238,6 +238,7 @@ model ContentItem {
   icon  String?
   image String?
   imageAlt String?
+  imageHidden Boolean @default(false)
 
   /// "مناسبة لمن" — rendered on the detail page.
   audience String?
@@ -308,6 +309,7 @@ model Post {
 
   coverImage String?
   coverImageAlt String?
+  coverHidden Boolean @default(false)
 
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -506,10 +508,12 @@ model SiteSetting {
   heroDescription String?
   heroImage       String?
   heroImageAlt    String?
+  heroImageHidden Boolean @default(false)
   homeAboutTitle  String?
   homeAboutText   String?
   homeAboutImage  String?
   homeAboutImageAlt String?
+  homeAboutImageHidden Boolean @default(false)
   homeServicesTitle    String?
   homeServicesText     String?
   homeServicesCtaText  String?
@@ -538,6 +542,8 @@ model SiteSetting {
   aboutVision2030Title String?
   aboutVision2030Text  String?
   aboutVision2030Image String?
+  aboutVision2030ImageAlt String?
+  aboutVision2030ImageHidden Boolean @default(false)
   aboutWhyTitle     String?
   aboutWhyText      String?
 
