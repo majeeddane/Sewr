@@ -122,7 +122,7 @@ export default async function ImagesPage() {
           kind: "content" as const,
           title: item.title,
           badge: CONTENT_LABEL[item.type] ?? item.type,
-          href: `/admin/content/${item.type.toLowerCase()}/${item.id}`,
+          href: `/admin/content/${item.type}/${item.id}`,
           image: item.image,
           hidden: item.imageHidden,
         }))}

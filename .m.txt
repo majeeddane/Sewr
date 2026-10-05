@@ -1,0 +1,14 @@
+fix: broken edit links on the images page
+
+Every "تعديل" link pointed at /admin/content/service/<id> because the page
+lowercased the content type, but isContentType only accepts the uppercase form.
+Each link returned 404. Found while capturing dashboard screenshots for the
+client preview, which is the kind of bug only a real click-through reveals.
+
+Adds the capture and preview-deck tooling used to produce the client PDF:
+headless Chrome for the public pages, and Puppeteer for the dashboard because
+the session cookie is httpOnly and cannot be injected into a plain browser.
+
+Also notes the working-directory constraint in the capture script: headless
+Chrome silently fails to save a screenshot when the path contains Arabic
+characters, which this repository's path does.
