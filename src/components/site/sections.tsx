@@ -256,13 +256,46 @@ export function Methodology({
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {!imageHidden && (
             <Reveal>
-              <div className="relative hidden aspect-square lg:block">
-                <Image
-                  src={image || "/placeholders/vision2030.svg"}
-                  alt=""
-                  fill
-                  sizes="40vw"
-                  className="object-contain opacity-90"
+              {/*
+                A framed photograph rather than a bare rectangle.
+
+                object-contain left visible bars on any image that was not
+                exactly square, so the picture floated instead of sitting in the
+                layout. object-cover fills the frame, and the corner radius,
+                ring and shadow match the rest of the site so the photo reads as
+                part of the design rather than pasted onto it.
+              */}
+              <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+                {/* Soft accent behind the frame, echoing the section glow. */}
+                <div
+                  aria-hidden
+                  className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-gold-400/10 blur-2xl"
+                />
+
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-lift ring-1 ring-white/12 sm:aspect-square">
+                  <Image
+                    src={image || "/placeholders/vision2030.svg"}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 42vw, 90vw"
+                    className="object-cover"
+                  />
+
+                  {/* Keeps the frame edge crisp over bright photographs. */}
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 rounded-[2rem] ring-1 ring-inset ring-white/15"
+                  />
+                  <div
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-0 h-1/4 rounded-b-[2rem] bg-gradient-to-t from-brand-950/45 to-transparent"
+                  />
+                </div>
+
+                {/* Offset accent frame, a detail the hero and cards use. */}
+                <div
+                  aria-hidden
+                  className="absolute -bottom-3 -end-3 -z-10 size-24 rounded-3xl border-2 border-gold-400/25"
                 />
               </div>
             </Reveal>
@@ -280,26 +313,31 @@ export function Methodology({
               </p>
             </Reveal>
 
-            <ol className="mt-10 flex flex-col gap-6">
+            <ol className="mt-10 flex flex-col gap-7">
               {steps.map((step, index) => (
                 <Reveal as="li" key={step.id} delay={index * 80}>
-                  <div className="group flex gap-4">
-                    <span className="relative flex flex-col items-center">
+                  <div className="group flex gap-4 sm:gap-5">
+                    {/*
+                      self-stretch lets the connector grow to the full row
+                      height. Without it the flex-1 line had nothing to fill
+                      and rendered as a short stub under each badge.
+                    */}
+                    <span className="relative flex self-stretch flex-col items-center">
                       <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gold-500 font-extrabold text-brand-950 shadow-gold transition-transform group-hover:scale-105">
                         {String(index + 1).padStart(2, "0")}
                       </span>
                       {index < steps.length - 1 && (
                         <span
                           aria-hidden
-                          className="mt-1 w-px flex-1 bg-gradient-to-b from-gold-500/60 to-transparent"
+                          className="mt-2 w-px flex-1 bg-gradient-to-b from-gold-500/70 via-gold-500/25 to-transparent"
                         />
                       )}
                     </span>
                     <div className="pb-1 pt-1.5">
-                      <h3 className="text-base font-extrabold text-white">
+                      <h3 className="text-base font-extrabold text-white sm:text-lg">
                         {step.title}
                       </h3>
-                      <p className="mt-1.5 text-[0.9375rem] leading-[1.95] text-brand-200">
+                      <p className="mt-2 text-[0.9375rem] leading-[1.95] text-brand-200/90">
                         {step.description}
                       </p>
                     </div>

@@ -146,13 +146,19 @@ export default async function AboutPage() {
                 </div>
                 <div className="relative min-h-[16rem] bg-brand-50 lg:min-h-full">
                   {settings.aboutVision2030Image && !settings.aboutVision2030ImageHidden ? (
-                    <Image
-                      src={settings.aboutVision2030Image}
-                      alt={settings.aboutVision2030ImageAlt ?? ""}
-                      fill
-                      sizes="(min-width: 1024px) 50vw, 100vw"
-                      className="object-cover"
-                    />
+                    <>
+                      <Image
+                        src={settings.aboutVision2030Image}
+                        alt={settings.aboutVision2030ImageAlt ?? ""}
+                        fill
+                        sizes="(min-width: 1024px) 50vw, 100vw"
+                        className="object-cover"
+                      />
+                      <div
+                        aria-hidden
+                        className="absolute inset-0 ring-1 ring-inset ring-brand-900/8"
+                      />
+                    </>
                   ) : (
                     <>
                       <div className="absolute inset-0 bg-dots opacity-40" />
