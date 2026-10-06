@@ -306,7 +306,7 @@ export function SectionHeading({
         )}
       >
         {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-        <Tag className="text-3xl leading-tight text-brand-900 sm:text-4xl lg:text-[2.6rem]">
+        <Tag className="text-3xl leading-[1.38] text-brand-900 sm:text-4xl lg:text-[2.6rem] lg:leading-[1.4]">
           {title}
         </Tag>
         {description && (

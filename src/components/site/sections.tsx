@@ -193,7 +193,7 @@ export function AboutTeaser({
             )}
 
             <Reveal delay={100}>
-              <h2 className="text-3xl text-brand-900 sm:text-4xl">{title}</h2>
+              <h2 className="text-3xl leading-[1.38] text-brand-900 sm:text-4xl">{title}</h2>
               <p className="mt-4 whitespace-pre-line text-[1.0625rem] leading-[2.05] text-ink-600">
                 {text}
               </p>
@@ -307,7 +307,7 @@ export function Methodology({
                 <SparkleDot />
                 منهجية واضحة
               </span>
-              <h2 className="mt-5 text-3xl text-white sm:text-4xl">{title}</h2>
+              <h2 className="mt-5 text-3xl leading-[1.38] text-white sm:text-4xl">{title}</h2>
               <p className="mt-4 text-[1.0625rem] leading-[2] text-brand-100">
                 {text}
               </p>
@@ -447,7 +447,7 @@ export function ProgramBanner({
             />
 
             <div className="relative max-w-2xl">
-              <h2 className="text-3xl leading-tight text-white sm:text-4xl">
+              <h2 className="text-3xl leading-[1.38] text-white sm:text-4xl">
                 {title}
               </h2>
               <p className="mt-5 text-[1.0625rem] leading-[2] text-brand-100">
@@ -648,7 +648,7 @@ export function CtaBanner({
             >
               <div className="p-7 sm:p-12 lg:p-14">
                 {badge && <span className="eyebrow">{badge}</span>}
-                <h2 className="mt-4 text-2xl leading-tight text-brand-900 sm:text-3xl lg:text-4xl">
+                <h2 className="mt-4 text-2xl leading-[1.38] text-brand-900 sm:text-3xl lg:text-4xl">
                   {title}
                 </h2>
                 <p className="mt-4 max-w-xl text-[1.0625rem] leading-[2] text-ink-600">

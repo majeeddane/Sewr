@@ -137,7 +137,7 @@ export default async function AboutPage() {
               <div className="grid items-center gap-10 overflow-hidden rounded-[2rem] border border-sand-200 bg-white shadow-soft lg:grid-cols-2">
                 <div className="p-7 sm:p-12">
                   <span className="eyebrow">رؤية المملكة ٢٠٣٠</span>
-                  <h2 className="mt-5 text-2xl leading-tight text-brand-900 sm:text-3xl">
+                  <h2 className="mt-5 text-2xl leading-[1.38] text-brand-900 sm:text-3xl">
                     {settings.aboutVision2030Title || "ارتباطنا برؤية 2030"}
                   </h2>
                   <p className="mt-4 text-[1.0625rem] leading-[2] text-ink-600">

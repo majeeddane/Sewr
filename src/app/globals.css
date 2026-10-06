@@ -157,18 +157,6 @@
     text-rendering: optimizeLegibility;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-  }
-
   /* Arabic numerals stay Western for clarity in a clinical context. */
   [dir="rtl"] {
     font-feature-settings: "ss01";
@@ -312,6 +300,36 @@
    ─────────────────────────────────────────────────────────── */
 
 @layer components {
+  /*
+   * Arabic headings need more leading than Latin ones.
+   *
+   * Tashkeel — the tanween and shadda in "للتعافي", "تعافٍ", "أفضل" — rises
+   * above and drops below the baseline, so a tight line box makes those marks
+   * collide with the neighbouring line. The operator reported exactly this on
+   * the hero title.
+   *
+   * Two details make this work where the obvious version does not:
+   *
+   *   - It lives in `@layer components`, not `@layer base`. Tailwind's preflight
+   *     sets `line-height: inherit` on headings and, being generated into the
+   *     base layer, took precedence over the previous base-layer rule — so
+   *     headings without an explicit utility fell back to `normal`, which
+   *     resolves to a font-dependent ~1.11 and is the defect itself.
+   *   - Utilities still win, because the components layer sits below them. A
+   *     heading that deliberately asks for tighter leading keeps it.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
   /*
    * Scroll-reveal is opt-in: the hidden state is only applied once the inline
    * bootstrap script has added `js` to <html>. Without JavaScript every section

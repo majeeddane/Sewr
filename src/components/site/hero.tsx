@@ -95,7 +95,7 @@ export function Hero({
             )}
 
             <Reveal delay={80}>
-              <h1 className="text-[2.15rem] font-extrabold leading-[1.28] text-white drop-shadow-sm sm:text-5xl sm:leading-[1.22] lg:text-[3.5rem] lg:leading-[1.18]">
+              <h1 className="text-[2.15rem] font-extrabold leading-[1.42] text-white drop-shadow-sm sm:text-5xl sm:leading-[1.38] lg:text-[3.5rem] lg:leading-[1.4]">
                 {title}
               </h1>
             </Reveal>

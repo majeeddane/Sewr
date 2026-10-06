@@ -579,7 +579,7 @@ function ContentPreview({
               <IconGlyph name={value.icon} className="size-6" />
             </span>
             <div className="min-w-0">
-              <h3 className="text-xl leading-tight font-extrabold text-white">
+              <h3 className="text-xl leading-[1.4] font-extrabold text-white">
                 {value.title || "عنوان العنصر"}
               </h3>
               {value.slug && (
