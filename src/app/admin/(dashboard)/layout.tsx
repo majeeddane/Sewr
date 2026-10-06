@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/session";
 import { allowedSections } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { getPublicSettings } from "@/lib/settings";
 import { AdminSidebar } from "@/components/admin/shell";
 import { logoutAction } from "@/app/admin/actions";
 
@@ -26,9 +27,12 @@ export default async function DashboardLayout({
     redirect(context.expired ? "/admin/login?expired=1" : "/admin/login");
   }
 
-  const [unreadMessages, newClients] = await Promise.all([
+  const [unreadMessages, newClients, brand] = await Promise.all([
     prisma.contactMessage.count({ where: { isRead: false, isArchived: false } }),
     prisma.client.count({ where: { status: "NEW" } }),
+    // The dashboard shows the same brand as the public site, so the operator
+    // sees in the sidebar exactly what a visitor will see.
+    getPublicSettings(),
   ]);
 
   return (
@@ -42,6 +46,12 @@ export default async function DashboardLayout({
         userName={context.user.name}
         userRole={context.user.role}
         badges={{ messages: unreadMessages, clients: newClients }}
+        logo={{
+          path: brand.logoPath,
+          includesName: brand.logoIncludesName,
+          siteName: brand.siteName,
+          siteNameEn: brand.siteNameEn,
+        }}
         onLogout={logoutAction}
       />
       <div className="lg:ps-[17rem]">

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/session";
+import { getPublicSettings } from "@/lib/settings";
+import { LogoMark } from "@/components/site/logo";
 import { LoginCard } from "./login-card";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,7 @@ export default async function LoginPage({
   if (context.user) redirect("/admin");
 
   const { expired } = await searchParams;
+  const { siteName } = await getPublicSettings();
 
   return (
     <main className="relative grid min-h-dvh place-items-center overflow-hidden bg-brand-950 px-5 py-12">
@@ -37,17 +40,14 @@ export default async function LoginPage({
       <div className="relative w-full max-w-md">
         <div className="rounded-3xl border border-white/10 bg-white p-7 shadow-lift sm:p-9">
           <div className="mb-7 flex flex-col items-center gap-4 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icon.svg"
-              alt="شعار سوار وعي"
-              width={56}
-              height={56}
-              className="size-14 rounded-2xl"
-            />
+            {/*
+              The uploaded brand, so the sign-in screen matches the rest of the
+              dashboard. Falls back to the built-in mark when none is set.
+            */}
+            <LogoMark size={56} />
             <div>
               <h1 className="text-xl font-extrabold text-brand-900">
-                لوحة تحكم سوار وعي
+                لوحة تحكم {siteName}
               </h1>
               <p className="mt-1.5 text-[0.875rem] text-ink-500">
                 سجّل الدخول لإدارة المحتوى وطلبات المستفيدين

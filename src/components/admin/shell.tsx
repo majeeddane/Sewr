@@ -134,12 +134,24 @@ export function AdminSidebar({
   userName,
   userRole,
   badges,
+  logo,
   onLogout,
 }: {
   sections: Sections;
   userName: string;
   userRole: Role;
   badges: Record<string, number>;
+  /**
+   * Brand identity, so the dashboard shows the same logo the site does. Without
+   * it the sidebar fell back to the built-in mark and the two disagreed after
+   * the operator uploaded a new logo.
+   */
+  logo?: {
+    path: string | null;
+    includesName: boolean;
+    siteName: string;
+    siteNameEn: string;
+  };
   onLogout: () => void;
 }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -164,7 +176,13 @@ export function AdminSidebar({
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
       <div className="flex items-center justify-between gap-2 px-1 pt-1">
         <Link href="/admin" className="flex items-center gap-2">
-          <Logo size={34} />
+          <Logo
+            size={34}
+            logoPath={logo?.path}
+            logoIncludesName={logo?.includesName}
+            siteName={logo?.siteName}
+            siteNameEn={logo?.siteNameEn}
+          />
         </Link>
         <button
           type="button"
