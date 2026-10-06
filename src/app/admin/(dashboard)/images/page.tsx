@@ -116,6 +116,17 @@ export default async function ImagesPage() {
             aspect: "aspect-[1.91/1]",
             folder: "general",
           },
+          {
+            column: "finalCtaImage",
+            label: "صورة شريط الدعوة",
+            hint: "الصورة بجانب دعوة التواصل في أسفل الصفحة الرئيسية وصفحة من نحن.",
+            path: settings.finalCtaImage,
+            alt: settings.finalCtaImageAlt,
+            hidden: settings.finalCtaImageHidden,
+            hideable: true,
+            aspect: "aspect-[4/3]",
+            folder: "brand",
+          },
         ]}
         contentItems={content.map((item) => ({
           id: item.id,

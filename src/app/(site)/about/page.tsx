@@ -214,7 +214,9 @@ export default async function AboutPage() {
         badge="خطوة تالية"
         title="التغيير ممكن.. ونحن هنا لدعمك"
         text="لا تحتاج أن تعرف من أين تبدأ. ابدأ باستشارة أولى للتقييم، وسنرافقك خطوة بخطوة."
-        image="/placeholders/cta-hands.svg"
+        image={settings.finalCtaImage ?? "/placeholders/cta-hands.svg"}
+        imageAlt={settings.finalCtaImageAlt}
+        imageHidden={settings.finalCtaImageHidden}
       />
 
     </>

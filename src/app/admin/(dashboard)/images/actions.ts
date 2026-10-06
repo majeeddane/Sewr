@@ -36,6 +36,12 @@ const GLOBAL_SLOTS = [
     hidden: "aboutVision2030ImageHidden",
     label: "صورة منهجية التعافي",
   },
+  {
+    path: "finalCtaImage",
+    alt: "finalCtaImageAlt",
+    hidden: "finalCtaImageHidden",
+    label: "صورة شريط الدعوة",
+  },
   { path: "ogImage", alt: null, hidden: null, label: "صورة المشاركة" },
 ] as const;
 

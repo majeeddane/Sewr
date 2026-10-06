@@ -612,6 +612,8 @@ export function CtaBanner({
   title,
   text,
   image,
+  imageAlt,
+  imageHidden = false,
   primaryLabel = "احجز استشارة",
   primaryHref = "/book",
   secondaryLabel = "تواصل معنا",
@@ -621,17 +623,29 @@ export function CtaBanner({
   title: string;
   text: string;
   image?: string | null;
+  imageAlt?: string | null;
+  /** Set from the dashboard: the image column is removed entirely. */
+  imageHidden?: boolean;
   primaryLabel?: string;
   primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
 }) {
+  const showImage = Boolean(image) && !imageHidden;
+
   return (
     <section className="pb-4 pt-4">
       <div className="container-page">
         <Reveal>
           <div className="relative overflow-hidden rounded-[2rem] bg-white shadow-lift ring-1 ring-sand-200">
-            <div className="grid items-center gap-0 lg:grid-cols-[1.35fr_1fr]">
+            <div
+              className={cn(
+                "grid items-center gap-0",
+                // Without the image the copy takes the full width rather than
+                // leaving an empty column beside it.
+                showImage ? "lg:grid-cols-[1.35fr_1fr]" : "",
+              )}
+            >
               <div className="p-7 sm:p-12 lg:p-14">
                 {badge && <span className="eyebrow">{badge}</span>}
                 <h2 className="mt-4 text-2xl leading-tight text-brand-900 sm:text-3xl lg:text-4xl">
@@ -650,23 +664,21 @@ export function CtaBanner({
                 </div>
               </div>
 
-              <div className="relative min-h-[16rem] lg:min-h-full">
-                {image ? (
+              {showImage && (
+                <div className="relative min-h-[16rem] lg:min-h-full">
                   <Image
-                    src={image}
-                    alt=""
+                    src={image as string}
+                    alt={imageAlt ?? ""}
                     fill
                     sizes="(min-width: 1024px) 42vw, 100vw"
                     className="object-cover"
                   />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-800 to-brand-950" />
-                )}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-l from-white via-white/25 to-transparent lg:from-white lg:via-white/20"
-                />
-              </div>
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 bg-gradient-to-l from-white via-white/25 to-transparent lg:from-white lg:via-white/20"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </Reveal>

@@ -26,6 +26,9 @@ function emptySettings(): SiteSetting {
     homeAboutImageHidden: false,
     aboutVision2030ImageHidden: false,
     aboutVision2030ImageAlt: null,
+    finalCtaImageHidden: false,
+    finalCtaImage: null,
+    finalCtaImageAlt: null,
     blockAdminIndex: true,
 
     phone: null,
@@ -159,6 +162,8 @@ export interface PublicSettings {
   homeAboutImageHidden: boolean;
   aboutVision2030Image: string | null;
   aboutVision2030ImageHidden: boolean;
+  finalCtaImage: string | null;
+  finalCtaImageHidden: boolean;
   faviconPath: string | null;
   ogImage: string | null;
   phone: string | null;
@@ -191,6 +196,8 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     homeAboutImageHidden: s.homeAboutImageHidden,
     aboutVision2030Image: s.aboutVision2030Image,
     aboutVision2030ImageHidden: s.aboutVision2030ImageHidden,
+    finalCtaImage: s.finalCtaImage,
+    finalCtaImageHidden: s.finalCtaImageHidden,
     faviconPath: s.faviconPath,
     ogImage: s.ogImage,
     phone: s.phone,

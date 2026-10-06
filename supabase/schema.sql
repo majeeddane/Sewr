@@ -440,6 +440,9 @@ create table site_settings (
   "finalCtaBadge"      text,
   "finalCtaTitle"      text,
   "finalCtaText"       text,
+  "finalCtaImage"      text,
+  "finalCtaImageAlt"   text,
+  "finalCtaImageHidden" boolean not null default false,
 
   "aboutHeroTitle"     text,
   "aboutHeroText"      text,

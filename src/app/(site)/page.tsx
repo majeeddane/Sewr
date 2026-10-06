@@ -339,7 +339,9 @@ export default async function HomePage() {
         badge={settings.finalCtaBadge}
         title={settings.finalCtaTitle ?? "التغيير ممكن"}
         text={settings.finalCtaText ?? ""}
-        image="/placeholders/cta-hands.svg"
+        image={settings.finalCtaImage ?? "/placeholders/cta-hands.svg"}
+        imageAlt={settings.finalCtaImageAlt}
+        imageHidden={settings.finalCtaImageHidden}
       />
     </>
   );
