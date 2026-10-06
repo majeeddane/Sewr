@@ -60,6 +60,19 @@ async function main() {
   });
   const page = await browser.newPage();
 
+  // The sign-in screen comes first, while still logged out.
+  await page.goto(`${SITE}/admin/login`, { waitUntil: "networkidle2", timeout: 60000 });
+  await new Promise((r) => setTimeout(r, 1500));
+  const login = await page.evaluate(() => {
+    const img = document.querySelector("main img");
+    return { found: !!img, src: img?.getAttribute("src") ?? "" };
+  });
+  check(
+    "صفحة تسجيل الدخول تعرض الشعار المرفوع",
+    login.src.includes("/storage/"),
+    login.src || "لم يُعثر على صورة — يعرض الشعار المدمج",
+  );
+
   // Sign in.
   await page.goto(`${SITE}/admin/login`, { waitUntil: "networkidle2", timeout: 60000 });
   await page.waitForSelector('input[type="password"]', { timeout: 20000 });
