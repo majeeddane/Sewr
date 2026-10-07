@@ -110,9 +110,21 @@ export default async function AboutPage() {
               description={settings.aboutValuesText}
               className="mb-12"
             />
-            <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-5">
+            {/*
+             * Flex-wrap rather than a fixed column count: the operator adds and
+             * removes values from the dashboard, and a fixed grid leaves a
+             * half-empty last row the moment the total stops being divisible
+             * by the column count. Wrapping keeps the final row centred and
+             * balanced at 5, 6 or 7 values without any change here.
+             */}
+            <ul className="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
               {values.map((value, index) => (
-                <Reveal as="li" key={value.id} delay={index * 70}>
+                <Reveal
+                  as="li"
+                  key={value.id}
+                  delay={index * 70}
+                  className="w-full max-w-[22rem] sm:w-[calc(50%-2rem)] lg:w-[calc(33.333%-2.1rem)]"
+                >
                   <div className="group flex flex-col items-center gap-3 text-center">
                     <IconChip icon={value.icon} tone="gold" size="lg" />
                     <h3 className="text-base font-extrabold text-brand-900">

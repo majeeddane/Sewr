@@ -156,7 +156,8 @@ export const VALUE_ITEMS = [
   },
   {
     title: "الاحترافية",
-    description: "كفاءة ومهنية في تطبيق البرامج والخدمات التي نقدّمها.",
+    description:
+      "كفاءة ومهنية في تطبيق البرامج والخدمات التي نقدّمها. نسعى متسلحين بالعلوم والمعارف المنهجية لبلوغ غاياتنا.",
     icon: "Target",
   },
   {
@@ -173,6 +174,18 @@ export const VALUE_ITEMS = [
     title: "الاستمرارية",
     description: "دعم مستمر يرافق رحلة التعافي حتى تستقر.",
     icon: "CalendarCheck",
+  },
+  // The two below are the operator's own wording, added from their brief. They
+  // were absent, and no existing value covered honesty or integrity.
+  {
+    title: "الصدق والشفافية",
+    description: "ننتهج الصدق والشفافية في التعامل مع مستفيدينا بمختلف فئاتهم وغاياتهم.",
+    icon: "Scale",
+  },
+  {
+    title: "الأمانة والإخلاص",
+    description: "نؤدي أدوارنا بأمانة وإخلاص.",
+    icon: "Handshake",
   },
 ];
 
